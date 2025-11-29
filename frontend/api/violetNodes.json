@@ -1,0 +1,17 @@
+[
+  {
+    "id": "v1",
+    "type": "violet",
+    "data": { "label": "1. <название>", "category": "Файл 1. " }
+  },
+  {
+    "id": "v2",
+    "type": "violet",
+    "data": { "label": "1.1 <название>", "category": "Файл 1.1 " }
+  },
+  {
+    "id": "v3",
+    "type": "violet",
+    "data": { "label": "1.2 <название>", "category": "Файл 1.2 " }
+  }
+]

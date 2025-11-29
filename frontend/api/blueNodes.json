@@ -1,0 +1,22 @@
+[
+  {
+    "id": "b1",
+    "type": "blue",
+    "data": { "label": "Поле 1", "category": "table" }
+  },
+  {
+    "id": "b2",
+    "type": "blue",
+    "data": { "label": "Секция 1", "category": "header" }
+  },
+  {
+    "id": "b3",
+    "type": "blue",
+    "data": { "label": "Текст 1", "category": "paragraph" }
+  },
+  {
+    "id": "b4",
+    "type": "blue",
+    "data": { "label": "Список 1", "category": "list" }
+  }
+]

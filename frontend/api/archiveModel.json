@@ -1,0 +1,31 @@
+{
+  "label": "Архив",
+  "type": "folder",
+  "children": [
+    {
+      "label": "1_объединенные файлы",
+      "type": "folder",
+      "children": []
+    },
+    {
+      "label": "Green Node 1",
+      "type": "folder",
+      "children": [
+        {
+          "label": "Файл для Green Node 1.docx",
+          "type": "file"
+        }
+      ]
+    },
+    {
+      "label": "Green Node 2",
+      "type": "folder",
+      "children": [
+        {
+          "label": "Пример файла для Green Node 2.docx",
+          "type": "file"
+        }
+      ]
+    }
+  ]
+}
