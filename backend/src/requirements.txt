@@ -1,0 +1,6 @@
+fastapi==0.120.1
+docxtpl==0.20.1
+pandas==2.3.3
+uvicorn==0.38.0
+openpyxl==3.1.5
+python-multipart==0.0.20
