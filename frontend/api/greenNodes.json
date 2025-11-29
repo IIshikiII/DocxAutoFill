@@ -1,0 +1,5 @@
+[
+  { "id": "g1", "type": "green", "data": { "label": "Green 1" } },
+  { "id": "g2", "type": "green", "data": { "label": "Green 2" } },
+  { "id": "g3", "type": "green", "data": { "label": "Green 3" } }
+]
