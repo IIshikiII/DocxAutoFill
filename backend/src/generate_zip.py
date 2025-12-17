@@ -2,6 +2,10 @@ from docxtpl import DocxTemplate
 import os
 import pandas as pd
 import re
+from docxcompose.composer import Composer
+from docx import Document
+from pathlib import Path
+
 
 def generate_context(file: str, req: dict) -> dict:
     context = {}
@@ -11,9 +15,11 @@ def generate_context(file: str, req: dict) -> dict:
                 for connection in req["connections"]:
                     if connection["target"] == node["id"]:
                         source_node_id = connection["source"]
-                        source_node = next(n for n in req["nodes"] if n["id"] == source_node_id)
-                        context[node['data']['label']] = source_node['data']['label']
-    
+                        source_node = next(
+                            n for n in req["nodes"] if n["id"] == source_node_id)
+                        context[node['data']['label']
+                                ] = source_node['data']['label']
+
     return context
 
 
@@ -23,7 +29,8 @@ def get_folder_key(req):
             for connection in req["connections"]:
                 if connection["target"] == node["id"]:
                     source_node_id = connection["source"]
-                    source_node = next(n for n in req["nodes"] if n["id"] == source_node_id)
+                    source_node = next(
+                        n for n in req["nodes"] if n["id"] == source_node_id)
                     return source_node['data']['label']
 
 
@@ -33,7 +40,8 @@ def get_file_name_key(file: str, req: dict) -> str:
             for connection in req["connections"]:
                 if connection["target"] == node["id"]:
                     source_node_id = connection["source"]
-                    source_node = next(n for n in req["nodes"] if n["id"] == source_node_id)
+                    source_node = next(
+                        n for n in req["nodes"] if n["id"] == source_node_id)
                     return source_node['data']['label'], node['data']['label']
 
 
@@ -49,16 +57,17 @@ def fill_template_with_docxtpl(row, file, req, zip_dir, folder_key, file_name_ke
     # print(context)
     template.render(context)
 
-    
     folder_name = row[folder_key]
-    
-    in_path = os.path.join(zip_dir, folder_name)
+
+    elem = file  # Use full file name as elem
+    in_path = os.path.join(zip_dir, folder_name, elem)
     os.makedirs(in_path, exist_ok=True)
 
     file_name = re.sub(r'<[^<>]*>', row[file_name_key[0]], file_name_key[1])
     print(file_name)
     save_path = os.path.join(in_path, file_name)
     template.save(save_path)
+
 
 def generate_zip(file_names, req, ZIP_DIR):
     SAVE_DIR = "uploaded_words"
@@ -70,7 +79,31 @@ def generate_zip(file_names, req, ZIP_DIR):
 
     for file_name in file_names:
         file_name_key = get_file_name_key(file_name, req)
-        df.apply(fill_template_with_docxtpl, axis=1, file=file_name, req=req, zip_dir = ZIP_DIR, folder_key=folder_key, file_name_key=file_name_key)
+        df.apply(fill_template_with_docxtpl, axis=1, file=file_name, req=req,
+                 zip_dir=ZIP_DIR, folder_key=folder_key, file_name_key=file_name_key)
+
+    # New code for merging documents
+    merged_dir = os.path.join(ZIP_DIR, "1_объединенные файлы")
+    os.makedirs(merged_dir, exist_ok=True)
+    for elem in file_names:  # Use file_names directly
+        all_files = []
+        for program in os.listdir(ZIP_DIR):
+            program_path = os.path.join(ZIP_DIR, program)
+            if os.path.isdir(program_path):
+                elem_path = os.path.join(program_path, elem)
+                if os.path.exists(elem_path):
+                    all_files.extend(sorted(Path(elem_path).glob("*.docx")))
+        if all_files:
+            master = Document(all_files[0])
+            composer = Composer(master)
+            for file in all_files[1:]:
+                # if True:  # Check if '12' is in elem for page break
+                #     master.add_page_break()
+                composer.append(Document(file))
+            out_file = os.path.join(
+                merged_dir, f"Объединённый_{elem.replace('.docx', '')}.docx")
+            composer.save(out_file)
+            print(f"Создано объединённый файл: {out_file}")
 
 
 def get_file_names(req):
@@ -79,6 +112,3 @@ def get_file_names(req):
         if node["type"] == "violet":
             file_names.append(node['data']['category'])
     return file_names
-
-
-
