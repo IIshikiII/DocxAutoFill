@@ -46,6 +46,25 @@ docker compose --profile prod up
 - Frontend: http://localhost:5173
 - Backend API: http://localhost:3000
 
+The `dev` profile builds for the host architecture, so it runs natively on both
+Intel and Apple Silicon. The pre-built `prod` images are multi-architecture
+(`amd64` + `arm64`).
+
+#### Building the published images (multi-arch)
+
+```bash
+# Build + push amd64 and arm64 manifests (uses docker-bake.hcl)
+scripts/build-images.sh
+REGISTRY=me TAG=v1.0.0 scripts/build-images.sh
+
+# Build just the host arch and load it locally (for testing, no push)
+PUSH=0 scripts/build-images.sh
+```
+
+CI also publishes multi-arch images on version tags via
+`.github/workflows/release-images.yml` (needs `DOCKERHUB_USERNAME` /
+`DOCKERHUB_TOKEN` secrets).
+
 Overridable environment variables (all have sensible defaults):
 
 | Variable | Used by | Default | Notes |
