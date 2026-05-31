@@ -1,0 +1,9 @@
+services:
+  frontend: 
+    image: ishikii/docx_front
+    ports:
+     - "5173:5173"
+  backend:
+    image: ishikii/docx_backend
+    ports:
+     - "3000:3000"
