@@ -35,5 +35,5 @@ class NodeGraph:
     def green_source_label(self, target_id: str) -> Optional[str]:
         src = self.source_of(target_id)
         if src is not None and src.type == "green":
-            return src.data["label"]
+            return str(src.data["label"])
         return None

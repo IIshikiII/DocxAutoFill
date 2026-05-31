@@ -1,6 +1,7 @@
 import io
+from typing import cast
 
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, Request, UploadFile
 from fastapi.responses import StreamingResponse
 
 from api.dto import GraphRequest
@@ -16,8 +17,8 @@ router = APIRouter(prefix="/api")
 @router.post("/import-nodes")
 async def import_nodes(request: Request):
     form = await request.form()
-    excel = form.get("excel")
-    words = form.getlist("words[]")
+    excel = cast("UploadFile | None", form.get("excel"))
+    words = cast("list[UploadFile]", form.getlist("words[]"))
     return await _import_nodes(excel, words)
 
 
@@ -29,18 +30,19 @@ async def get_archive_model(graph: GraphRequest):
 @router.post("/process")
 async def process_documents(request: Request):
     form = await request.form()
-    excel = form.get("excel")
-    words = form.getlist("words[]")
+    excel = cast("UploadFile | None", form.get("excel"))
+    words = cast("list[UploadFile]", form.getlist("words[]"))
     validate_excel(excel)
     validate_words(words)
+    assert excel is not None  # guaranteed by validate_excel
 
     graph_raw = form.get("graph")
-    if not graph_raw:
+    if not graph_raw or not isinstance(graph_raw, str):
         raise ValueError("Не передан граф (поле 'graph')")
     graph = GraphRequest.model_validate_json(graph_raw)
 
     excel_bytes = await excel.read()
-    templates = {w.filename: await w.read() for w in words}
+    templates = {(w.filename or ""): await w.read() for w in words}
 
     workspace = create_workspace()
     try:

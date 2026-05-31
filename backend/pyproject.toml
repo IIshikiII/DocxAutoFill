@@ -14,3 +14,12 @@ indent-style = "space"
 python_version = "3.12"
 warn_return_any = true
 files = ["src"]
+
+# Third-party libraries without type information.
+[[tool.mypy.overrides]]
+module = ["pandas.*", "docxtpl.*", "docxcompose.*"]
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]

@@ -25,7 +25,7 @@ async def import_nodes(excel: UploadFile | None, words: list[UploadFile]) -> dic
     df = pd.read_excel(io.BytesIO(contents), dtype=str)
     cols = df.columns.tolist()
 
-    file_names = [w.filename for w in words]
+    file_names = [w.filename or "" for w in words]
 
     words_nodes = [
         {
