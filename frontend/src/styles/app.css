@@ -1,0 +1,299 @@
+/* App layout */
+.app-root {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.canvas-pane {
+  height: 50vh;
+  border-bottom: 1px solid #ddd;
+}
+
+.controls-pane {
+  height: 50vh;
+  display: flex;
+  justify-content: space-between;
+  padding: 20px;
+  position: relative;
+}
+
+.upload-column {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  width: 500px;
+  align-self: flex-start;
+}
+
+.upload-card {
+  border: 1px solid #ccc;
+  padding: 15px;
+  border-radius: 8px;
+}
+
+.upload-card h3 {
+  margin: 0 0 10px 0;
+}
+
+.action-column {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  align-self: center;
+}
+
+/* Action buttons */
+.action-btn {
+  padding: 10px 20px;
+  font-size: 16px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.action-btn:disabled {
+  opacity: 0.7;
+}
+
+/* Loading spinner */
+.spinner {
+  width: 20px;
+  height: 20px;
+  border: 3px solid #000000;
+  border-top: 3px solid transparent;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+.spinner.light {
+  border-color: #ffffff;
+  border-top-color: transparent;
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+/* Archive model preview */
+.archive-model-panel {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  top: 20px;
+  padding: 20px;
+  background-color: #ffffff;
+  border-radius: 8px;
+  border: 1px solid #ddd;
+  max-height: 300px;
+  overflow-y: auto;
+  min-width: 300px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.archive-model-header {
+  margin-bottom: 15px;
+  border-bottom: 1px solid #eee;
+  padding-bottom: 10px;
+}
+
+.archive-model-title {
+  font-size: 16px;
+  font-weight: bold;
+}
+
+.archive-model-close {
+  float: right;
+  border: none;
+  background: none;
+  color: #666;
+  cursor: pointer;
+  padding: 5px;
+  border-radius: 3px;
+}
+
+.archive-tree {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen,
+    Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
+}
+
+.archive-tree .tree-view {
+  margin-bottom: 5px;
+}
+
+.archive-tree .tree-view_item {
+  padding: 5px;
+  border-radius: 4px;
+  transition: background-color 0.2s;
+}
+
+.archive-tree .tree-view_item:hover {
+  background-color: #f8f9fa;
+}
+
+.archive-tree .tree-view_arrow {
+  display: none; /* Скрываем треугольники */
+}
+
+.archive-tree .tree-view_children {
+  margin-left: 25px; /* Сохраняем отступ для вложенных элементов */
+  padding-left: 0; /* Убираем дополнительный отступ */
+}
+
+.archive-item-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.archive-item-name {
+  color: #7f8c8d;
+  font-weight: 400;
+}
+
+.archive-item-name.folder {
+  color: #2c3e50;
+  font-weight: 500;
+}
+
+/* File upload UI */
+.file-upload-btn {
+  display: inline-block;
+  padding: 8px 12px;
+  background: #f0f3f7;
+  border: 1px solid #d0d7df;
+  border-radius: 6px;
+  cursor: pointer;
+  color: #1f2937;
+  font-weight: 600;
+  margin-bottom: 10px;
+}
+
+.file-upload-btn:hover {
+  background: #e7edf3;
+}
+
+.file-upload-btn.primary {
+  background: linear-gradient(180deg, #3b82f6, #2563eb);
+  color: #fff;
+  border: none;
+}
+
+.file-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.file-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 10px;
+  background: #fbfdff;
+  border: 1px solid #e6eef8;
+  border-radius: 8px;
+}
+
+.file-meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.file-icon {
+  font-size: 18px;
+}
+
+.file-name {
+  color: #0f172a;
+  font-size: 14px;
+}
+
+.remove-btn {
+  background: transparent;
+  border: none;
+  color: #ef4444;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 4px;
+}
+
+.remove-btn:hover {
+  background: rgba(239, 68, 68, 0.08);
+}
+
+/* Node base + hover/selection styling */
+.node-base {
+  padding: 8px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+}
+
+.custom-node {
+  transition: filter 120ms ease, box-shadow 120ms ease;
+}
+
+.custom-node:hover {
+  filter: brightness(0.95);
+  box-shadow: 0 4px 14px rgba(16, 24, 40, 0.08);
+}
+
+/* Green node */
+.green-node {
+  background: #b7e4c7;
+  border: 1px solid #4caf50;
+}
+
+.green-node.selected {
+  filter: brightness(0.86) !important;
+  box-shadow: 0 6px 20px rgba(34, 197, 94, 0.12);
+}
+
+/* Orange node */
+.orange-node {
+  background: #ffe0b2;
+  border: 2px solid #ff9800;
+  font-weight: 600;
+}
+
+/* Violet node */
+.violet-node {
+  font-weight: 600;
+  min-width: 80px;
+  justify-content: center;
+}
+
+.violet-node-wrapper {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.violet-node-category {
+  position: absolute;
+  top: -22px;
+  left: 0;
+  width: 100%;
+  text-align: center;
+  font-size: 13px;
+  color: rgba(80, 0, 120, 0.4);
+  font-weight: 500;
+  pointer-events: none;
+  user-select: none;
+}
+
+/* Blue node */
+.blue-node-label {
+  font-weight: 600;
+  margin-right: 8px;
+}
