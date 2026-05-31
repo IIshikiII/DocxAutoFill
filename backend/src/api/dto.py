@@ -20,11 +20,22 @@ class EdgeDTO(BaseModel):
     target: str
 
 
+class ArchiveOptionsDTO(BaseModel):
+    """Configurable, non-data-derived archive names (Stage 10).
+
+    Empty/omitted fields fall back to the server defaults (see ``config``).
+    """
+
+    merged_dir_name: str | None = None
+    merged_file_template: str | None = None
+
+
 class GraphRequest(BaseModel):
     """Canvas graph sent by the frontend: nodes plus their connections."""
 
     nodes: list[NodeDTO] = Field(default_factory=list)
     connections: list[EdgeDTO] = Field(default_factory=list)
+    options: ArchiveOptionsDTO | None = None
 
 
 class ArchiveItem(BaseModel):

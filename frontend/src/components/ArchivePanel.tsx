@@ -1,13 +1,14 @@
 import ArchiveModelView from "./ArchiveModelView";
-import type { ArchiveItem } from "../types";
+import type { ArchiveEditTarget, ArchiveItem } from "../types";
 
 interface ArchivePanelProps {
   open: boolean;
   model: ArchiveItem | null;
   onClose: () => void;
+  onEdit: (target: ArchiveEditTarget, template: string) => void;
 }
 
-const ArchivePanel = ({ open, model, onClose }: ArchivePanelProps) => {
+const ArchivePanel = ({ open, model, onClose, onEdit }: ArchivePanelProps) => {
   const visible = open && model !== null;
 
   return (
@@ -25,7 +26,13 @@ const ArchivePanel = ({ open, model, onClose }: ArchivePanelProps) => {
       </div>
 
       <div className="drawer-body">
-        {model && <ArchiveModelView model={model} />}
+        {model && <ArchiveModelView model={model} onEdit={onEdit} />}
+        <p className="hint">
+          Редактируйте имена прямо в дереве. Подсвеченные части (из Excel) и
+          расширение файлов изменить нельзя. Имя объединённого файла по
+          умолчанию содержит имя макета и редактируется целиком (кроме
+          расширения).
+        </p>
       </div>
     </aside>
   );

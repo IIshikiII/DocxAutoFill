@@ -1,9 +1,18 @@
-import type { FlowEdge, FlowNode, GraphPayload, WireNode } from "../types";
+import type {
+  ArchiveOptions,
+  FlowEdge,
+  FlowNode,
+  GraphPayload,
+  WireNode,
+} from "../types";
+import { toWireOptions } from "./archiveOptions";
 
-/** Convert canvas nodes + edges into the wire payload sent to the backend. */
+/** Convert canvas nodes + edges (and optional archive options) into the wire
+ *  payload sent to the backend. */
 export function toGraphPayload(
   nodes: FlowNode[],
-  edges: FlowEdge[]
+  edges: FlowEdge[],
+  options?: ArchiveOptions
 ): GraphPayload {
   return {
     nodes: nodes.map(({ id, type, data }) => ({
@@ -12,5 +21,6 @@ export function toGraphPayload(
       data,
     })) as WireNode[],
     connections: edges.map(({ source, target }) => ({ source, target })),
+    ...(options ? { options: toWireOptions(options) } : {}),
   };
 }

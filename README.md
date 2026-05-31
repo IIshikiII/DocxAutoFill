@@ -110,11 +110,26 @@ Backend on port 3000. Errors return `{ detail }` with a `400` (bad input) or
 | Method | Path | Input | Output |
 |--------|------|-------|--------|
 | POST | `/api/import-nodes` | multipart: `excel`, `words[]` | `{ status, received, nodes[] }` |
-| POST | `/api/archive-model` | JSON `{ nodes[], connections[] }` | folder/file tree `{ label, type, children[] }` |
-| POST | `/api/process` | multipart: `excel`, `words[]`, `graph` (JSON string `{ nodes[], connections[] }`) | `archive.zip` (streamed) |
+| POST | `/api/archive-model` | JSON `{ nodes[], connections[], options? }` | folder/file tree `{ label, type, children[], edit? }` |
+| POST | `/api/process` | multipart: `excel`, `words[]`, `graph` (JSON string `{ nodes[], connections[], options? }`) | `archive.zip` (streamed) |
 | POST | `/api/process/stream` | same as `/process` | Server-Sent Events: `progress` `{ done, total, percent, message }`, then `done` `{ filename, data }` (base64 zip), or `error` `{ detail }` |
 
 `nodes[]`: `{ id, type, data: { label, category? } }` · `connections[]`: `{ source, target }`.
+
+`options?` (optional, inside the graph JSON): `{ merged_dir_name?, merged_file_template? }` — configurable
+archive names. Omitted/empty fields fall back to the server defaults (see `config`). In `merged_file_template`
+the `<…>` placeholder is replaced with the source template's base name. Each rendered document is written
+directly into its grouping folder (`<group>/<file>.docx`).
+
+Names are edited **in the archive-model tree** (after "Создать модель архива"), nowhere else. For each editable
+item the response carries `edit = { target, segments[] }`: `target` says where the edit applies
+(`merged_dir` / `merged_file` / `file` with a `nodeId`); `segments[]` is an ordered mix of `text` (editable),
+`lock` (an Excel substitution — frozen; carries the display `value` and the original `<…>` `token`) and `ext`
+(the file extension — frozen). The frontend lets you edit only the `text` segments, so the substituted text and
+the extension can never be changed. Per-row file names freeze the Excel substitution; **merged-file names**
+freeze only the extension and are otherwise fully editable. Each merged file is named per template — by default
+the template's own name is substituted in (`Объединённый_<template>.docx`), so the name says which template was
+merged; a manual rename is stored per template on its violet node (`data.merged_label`).
 
 For long jobs the UI calls `/api/process/stream`, which reports live progress via
 Server-Sent Events and returns the finished archive in the final `done` event.

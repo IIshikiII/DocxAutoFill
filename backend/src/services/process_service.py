@@ -10,7 +10,6 @@ for long jobs (Stage 10). :func:`run_process` is a thin non-streaming wrapper.
 
 import io
 import logging
-import os
 import shutil
 from collections.abc import Iterator
 from dataclasses import dataclass
@@ -22,7 +21,7 @@ from docx import Document
 from docxcompose.composer import Composer
 from docxtpl import DocxTemplate
 
-from config import settings
+from domain.archive_model import ArchiveOptions, merged_file_name
 from domain.graph import NodeGraph
 from domain.naming import apply_template
 
@@ -80,43 +79,40 @@ def _get_file_name_mapping(graph: NodeGraph, file: str) -> Optional[tuple[str, s
 def _fill_template(
     row,
     *,
-    file: str,
     template_bytes: bytes,
     context_map: dict[str, str],
     out_dir: Path,
     folder_key: str,
     file_name_mapping: tuple[str, str],
-) -> None:
+) -> Path:
+    """Render one template for one row directly into its grouping folder.
+
+    The file lands at ``out_dir/<grouping value>/<file name>`` — no extra
+    per-template subfolder. Returns the path of the saved document.
+    """
     template = DocxTemplate(io.BytesIO(template_bytes))
     template.render({var: row[col] for var, col in context_map.items()})
 
-    folder_name = row[folder_key]
-    in_path = out_dir / folder_name / file
-    in_path.mkdir(parents=True, exist_ok=True)
+    folder_name = str(row[folder_key])
+    target_dir = out_dir / folder_name
+    target_dir.mkdir(parents=True, exist_ok=True)
 
     file_name = apply_template(file_name_mapping[1], row[file_name_mapping[0]])
-    template.save(str(in_path / file_name))
+    out_path = target_dir / file_name
+    template.save(str(out_path))
+    return out_path
 
 
-def _merge_template(template_file: str, out_dir: Path, merged_dir: Path) -> None:
-    """Concatenate every rendered copy of one template across all folders."""
-    all_files: list[Path] = []
-    for program in sorted(os.listdir(out_dir)):
-        program_path = out_dir / program
-        if not program_path.is_dir():
-            continue
-        elem_path = program_path / template_file
-        if elem_path.exists():
-            all_files.extend(sorted(elem_path.glob("*.docx")))
-
-    if not all_files:
+def _merge_template(files: list[Path], merged_dir: Path, out_name: str) -> None:
+    """Concatenate every rendered copy of one template into a single document."""
+    paths = [p for p in sorted(files, key=str) if p.exists()]
+    if not paths:
         return
 
-    master = Document(str(all_files[0]))
+    master = Document(str(paths[0]))
     composer = Composer(master)
-    for f in all_files[1:]:
+    for f in paths[1:]:
         composer.append(Document(str(f)))
-    out_name = f"Объединённый_{template_file.replace('.docx', '')}.docx"
     composer.save(str(merged_dir / out_name))
 
 
@@ -128,6 +124,7 @@ def iter_process(
 ) -> Iterator[ProcessEvent]:
     """Generate documents into ``workspace``, yielding progress then the result."""
     graph = NodeGraph(graph_data["nodes"], graph_data["connections"])
+    options = ArchiveOptions.resolve(graph_data)
     file_names = [n.data["category"] for n in graph.nodes_by_type("violet")]
 
     folder_key = _get_folder_key(graph)
@@ -158,24 +155,30 @@ def iter_process(
     done = 0
     yield ProcessProgress(done, total, "Подготовка…")
 
+    rendered: dict[str, list[Path]] = {name: [] for name, _, _ in plans}
     for file_name, mapping, context_map in plans:
         for _, row in df.iterrows():
-            _fill_template(
+            out_path = _fill_template(
                 row,
-                file=file_name,
                 template_bytes=templates[file_name],
                 context_map=context_map,
                 out_dir=out_dir,
                 folder_key=folder_key,
                 file_name_mapping=mapping,
             )
+            rendered[file_name].append(out_path)
             done += 1
             yield ProcessProgress(done, total, f"Заполнение шаблона «{file_name}»")
 
-    merged_dir = out_dir / settings.merged_dir_name
+    merged_names = {
+        str(v.data["category"]): merged_file_name(v.data, options)
+        for v in graph.nodes_by_type("violet")
+        if v.data.get("category")
+    }
+    merged_dir = out_dir / options.merged_dir_name
     merged_dir.mkdir(parents=True, exist_ok=True)
     for file_name, _, _ in plans:
-        _merge_template(file_name, out_dir, merged_dir)
+        _merge_template(rendered[file_name], merged_dir, merged_names[file_name])
         done += 1
         yield ProcessProgress(done, total, f"Объединение «{file_name}»")
 

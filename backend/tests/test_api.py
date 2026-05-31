@@ -1,5 +1,7 @@
 import base64
+import io
 import json
+import zipfile
 
 
 def test_import_nodes_ok(client, upload_files):
@@ -98,6 +100,63 @@ def test_process_returns_zip(client, upload_files):
     assert response.status_code == 200
     assert response.headers["content-type"] == "application/zip"
     assert response.content[:2] == b"PK"  # zip magic bytes
+
+
+def test_process_lays_files_directly_in_grouping_folders(client, upload_files):
+    """Rendered files sit at <group>/<file>.docx, not in a <template>.docx subfolder."""
+    imported = client.post("/api/import-nodes", files=upload_files).json()["nodes"]
+    graph = _wire_full_graph(imported)
+
+    response = client.post(
+        "/api/process",
+        files=upload_files,
+        data={"graph": json.dumps(graph)},
+    )
+    names = zipfile.ZipFile(io.BytesIO(response.content)).namelist()
+
+    # Files land one level below the grouping folder, e.g. "A/tpl Иванов.docx".
+    rendered = [n for n in names if not n.startswith("1_объединенные файлы/")]
+    assert rendered, names
+    assert all(n.count("/") == 1 for n in rendered), names
+    # No intermediate folder named after the template ("tpl.docx/").
+    assert not any("tpl.docx/" in n for n in names), names
+    # The merged archive folder and a merged file are present.
+    assert any(n.startswith("1_объединенные файлы/") for n in names), names
+    assert any("Объединённый_tpl.docx" in n for n in names), names
+
+
+def test_process_honours_custom_archive_options(client, upload_files):
+    imported = client.post("/api/import-nodes", files=upload_files).json()["nodes"]
+    graph = _wire_full_graph(imported)
+    graph["options"] = {
+        "merged_dir_name": "Сводные",
+        "merged_file_template": "Все_<файл>.docx",
+    }
+
+    response = client.post(
+        "/api/process",
+        files=upload_files,
+        data={"graph": json.dumps(graph)},
+    )
+    names = zipfile.ZipFile(io.BytesIO(response.content)).namelist()
+    assert any(n.startswith("Сводные/") for n in names), names
+    assert any("Все_tpl.docx" in n for n in names), names
+
+
+def test_process_uses_per_node_merged_label(client, upload_files):
+    imported = client.post("/api/import-nodes", files=upload_files).json()["nodes"]
+    for node in imported:
+        if node["type"] == "violet":
+            node["data"]["merged_label"] = "Все дипломы.docx"
+    graph = _wire_full_graph(imported)
+
+    response = client.post(
+        "/api/process",
+        files=upload_files,
+        data={"graph": json.dumps(graph)},
+    )
+    names = zipfile.ZipFile(io.BytesIO(response.content)).namelist()
+    assert "1_объединенные файлы/Все дипломы.docx" in names, names
 
 
 def _parse_sse(text):

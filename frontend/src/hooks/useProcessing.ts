@@ -1,7 +1,7 @@
 import { useCallback, useState } from "react";
 import { processGraphStream } from "../api/client";
 import type { ProcessProgress } from "../api/client";
-import type { FlowEdge, FlowNode } from "../types";
+import type { ArchiveOptions, FlowEdge, FlowNode } from "../types";
 import { toGraphPayload } from "../utils/graphPayload";
 
 function downloadBlob(blob: Blob, filename: string): void {
@@ -21,12 +21,18 @@ export function useProcessing() {
   const [progress, setProgress] = useState<ProcessProgress | null>(null);
 
   const run = useCallback(
-    async (nodes: FlowNode[], edges: FlowEdge[], excel: File, words: File[]) => {
+    async (
+      nodes: FlowNode[],
+      edges: FlowEdge[],
+      excel: File,
+      words: File[],
+      options: ArchiveOptions
+    ) => {
       setProcessing(true);
       setProgress({ done: 0, total: 1, percent: 0, message: "Подготовка…" });
       try {
         const blob = await processGraphStream(
-          toGraphPayload(nodes, edges),
+          toGraphPayload(nodes, edges, options),
           excel,
           words,
           setProgress

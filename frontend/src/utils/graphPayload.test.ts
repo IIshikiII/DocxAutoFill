@@ -27,4 +27,19 @@ describe("toGraphPayload", () => {
     ] as FlowNode[];
     expect(toGraphPayload(nodes, []).nodes[0].type).toBe("");
   });
+
+  it("omits options when none are passed", () => {
+    expect(toGraphPayload([], [])).not.toHaveProperty("options");
+  });
+
+  it("converts archive options to the snake_case wire shape", () => {
+    const payload = toGraphPayload([], [], {
+      mergedDirName: "Сводные",
+      mergedFileTemplate: "Все_<файл>.docx",
+    });
+    expect(payload.options).toEqual({
+      merged_dir_name: "Сводные",
+      merged_file_template: "Все_<файл>.docx",
+    });
+  });
 });

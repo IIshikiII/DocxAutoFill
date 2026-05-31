@@ -13,6 +13,8 @@ import { useArchiveModel } from "./hooks/useArchiveModel";
 import { useProcessing } from "./hooks/useProcessing";
 import { importNodes as importNodesApi } from "./api/client";
 import { positionImportedNodes } from "./utils/layout";
+import { DEFAULT_ARCHIVE_OPTIONS } from "./utils/archiveOptions";
+import type { ArchiveEditTarget, ArchiveOptions, NodeData } from "./types";
 
 const App = () => {
   const {
@@ -30,6 +32,31 @@ const App = () => {
   const { processing, progress, run } = useProcessing();
   const [importing, setImporting] = useState(false);
   const [dataOpen, setDataOpen] = useState(true);
+  const [archiveOptions, setArchiveOptions] = useState<ArchiveOptions>(
+    DEFAULT_ARCHIVE_OPTIONS
+  );
+
+  // Editing happens only in the archive-model tree (after "Создать модель
+  // архива"). An edited name is applied to the right place: the merged-folder
+  // name to options, per-row file names and per-template merged-file names to
+  // their violet node.
+  const patchNodeData = (id: string, patch: Partial<NodeData>) =>
+    setNodes((nds) =>
+      nds.map((node) =>
+        node.id === id ? { ...node, data: { ...node.data, ...patch } } : node
+      )
+    );
+
+  const handleArchiveEdit = (target: ArchiveEditTarget, template: string) => {
+    if (target.kind === "merged_dir") {
+      setArchiveOptions((o) => ({ ...o, mergedDirName: template }));
+    } else if (target.kind === "merged_file") {
+      // Per-template merged-file name lives on the violet node.
+      patchNodeData(target.nodeId, { merged_label: template });
+    } else {
+      patchNodeData(target.nodeId, { label: template });
+    }
+  };
 
   const requireFiles = () => {
     if (!excelFile) {
@@ -54,7 +81,9 @@ const App = () => {
       setEdges([]);
     } catch (error) {
       console.error("Error importing nodes:", error);
-      alert(error instanceof Error ? error.message : "Ошибка при импорте узлов");
+      alert(
+        error instanceof Error ? error.message : "Ошибка при импорте узлов"
+      );
     } finally {
       setImporting(false);
     }
@@ -64,7 +93,7 @@ const App = () => {
     if (!requireFiles() || !excelFile) {
       return;
     }
-    void run(nodes, edges, excelFile, wordFiles);
+    void run(nodes, edges, excelFile, wordFiles, archiveOptions);
   };
 
   return (
@@ -72,7 +101,7 @@ const App = () => {
       <TopBar
         dataOpen={dataOpen}
         onToggleData={() => setDataOpen((open) => !open)}
-        onGenerateModel={() => archive.generate(nodes, edges)}
+        onGenerateModel={() => archive.generate(nodes, edges, archiveOptions)}
         onProcess={startProcessing}
         importing={importing}
         processing={processing}
@@ -118,6 +147,7 @@ const App = () => {
           open={archive.visible}
           model={archive.archiveModel}
           onClose={archive.hide}
+          onEdit={handleArchiveEdit}
         />
 
         {progress && <ProgressOverlay progress={progress} />}

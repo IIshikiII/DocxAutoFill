@@ -17,8 +17,13 @@ class Settings(BaseSettings):
     excel_extensions: tuple[str, ...] = (".xls", ".xlsx")
     word_extensions: tuple[str, ...] = (".doc", ".docx")
 
-    # Names used when building the output archive tree.
+    # Default names used when building the output archive tree. Both are
+    # overridable per request via the graph's ``options`` (see ArchiveOptions);
+    # these are the fallbacks when the request omits them.
     merged_dir_name: str = "1_объединенные файлы"
+    # Template for a merged file's name; the ``<…>`` placeholder is replaced
+    # with the source template's base name (without ``.docx``).
+    merged_file_template: str = "Объединённый_<файл>.docx"
 
 
 settings = Settings()
