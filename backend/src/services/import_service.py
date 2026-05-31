@@ -1,24 +1,31 @@
+"""Parse an Excel sheet and Word templates into canvas nodes.
+
+Stateless (Stage 3): files are read in memory only; nothing is persisted to
+disk, so concurrent imports never interfere with one another.
+"""
+
 import io
-import os
-from typing import Optional
+import logging
 
 import pandas as pd
 from docxtpl import DocxTemplate
 from fastapi import UploadFile
 
-SAVE_DIR = "uploaded_words"
+from services.validation import validate_excel, validate_words
+
+logger = logging.getLogger(__name__)
 
 
-async def import_nodes(excel: UploadFile, words: list[UploadFile]) -> dict:
-    os.makedirs(SAVE_DIR, exist_ok=True)
+async def import_nodes(excel: UploadFile | None, words: list[UploadFile]) -> dict:
+    validate_excel(excel)
+    validate_words(words)
+    assert excel is not None  # guaranteed by validate_excel
 
     contents = await excel.read()
     df = pd.read_excel(io.BytesIO(contents), dtype=str)
-    df.to_excel(os.path.join(SAVE_DIR, "excel.xlsx"))
     cols = df.columns.tolist()
 
     file_names = [w.filename for w in words]
-    excel_name: Optional[str] = excel.filename
 
     words_nodes = [
         {
@@ -29,15 +36,12 @@ async def import_nodes(excel: UploadFile, words: list[UploadFile]) -> dict:
         for i, name in enumerate(file_names)
     ]
     cols_nodes = [
-        {"id": f"g{i}", "type": "green", "data": {"label": col}}
-        for i, col in enumerate(cols)
+        {"id": f"g{i}", "type": "green", "data": {"label": col}} for i, col in enumerate(cols)
     ]
 
     word_fill_nodes = []
     for i, word_file in enumerate(words):
         content = await word_file.read()
-        with open(os.path.join(SAVE_DIR, word_file.filename), "wb") as f:
-            f.write(content)
         doc = DocxTemplate(io.BytesIO(content))
         for j, var in enumerate(doc.get_undeclared_template_variables()):
             word_fill_nodes.append(
@@ -48,9 +52,11 @@ async def import_nodes(excel: UploadFile, words: list[UploadFile]) -> dict:
                 }
             )
 
+    logger.info("Imported %d columns and %d templates", len(cols_nodes), len(file_names))
+
     return {
         "status": "success",
-        "received": {"excel": excel_name, "words": file_names},
+        "received": {"excel": excel.filename, "words": file_names},
         "nodes": [
             *words_nodes,
             *cols_nodes,

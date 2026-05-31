@@ -5,6 +5,8 @@
     "lib": ["DOM", "DOM.Iterable", "ESNext"],
     "useDefineForClassFields": true,
     "module": "ESNext",
+    "moduleResolution": "node",
+    "esModuleInterop": true,
     "resolveJsonModule": true,
     "allowJs": true,
     "checkJs": false,
@@ -12,6 +14,6 @@
     "strict": true,
     "noImplicitAny": true
   },
-  "include": ["./**/*.d.ts", "./**/*.{ts,tsx}"],
+  "include": ["**/*.ts", "**/*.tsx", "**/*.d.ts"],
   "exclude": ["node_modules", "dist", "api"]
 }

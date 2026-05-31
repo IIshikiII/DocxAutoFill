@@ -3,10 +3,10 @@ import {
   Background,
   ReactFlow,
   addEdge,
-  Position,
   useNodesState,
   useEdgesState,
 } from "@xyflow/react";
+import type { Connection } from "@xyflow/react";
 import TreeView from "react-treeview";
 import "react-treeview/react-treeview.css";
 
@@ -16,10 +16,18 @@ import GreenNode from "./GreenNode";
 import BlueNode from "./BlueNode";
 import VioletNode from "./VioletNode";
 import OrangeNode from "./OrangeNode";
-import mockGreen from "./api/greenNodes.json";
-import mockBlue from "./api/blueNodes.json";
-import mockViolet from "./api/violetNodes.json";
-import mockOrange from "./api/orangeNode.json";
+import {
+  getArchiveModel,
+  importNodes as importNodesApi,
+  processGraph,
+} from "./src/api/client";
+import type {
+  ArchiveItem,
+  FlowEdge,
+  FlowNode,
+  GraphPayload,
+  WireNode,
+} from "./src/types";
 
 const nodeTypes = {
   green: GreenNode,
@@ -28,55 +36,40 @@ const nodeTypes = {
   orange: OrangeNode,
 };
 
+const buildPayload = (nodes: FlowNode[], edges: FlowEdge[]): GraphPayload => ({
+  nodes: nodes.map(({ id, type, data }) => ({
+    id,
+    type: type ?? "",
+    data,
+  })) as WireNode[],
+  connections: edges.map(({ source, target }) => ({ source, target })),
+});
+
 const CustomNodeFlow = () => {
   // start empty; nodes will be imported via button
-  const [nodes, setNodes, onNodesChange] = useNodesState<any>([]);
-  const [edges, setEdges, onEdgesChange] = useEdgesState<any>([]);
+  const [nodes, setNodes, onNodesChange] = useNodesState<FlowNode>([]);
+  const [edges, setEdges, onEdgesChange] = useEdgesState<FlowEdge>([]);
   const [importing, setImporting] = useState(false);
   const [processing, setProcessing] = useState(false);
   const [wordFiles, setWordFiles] = useState<File[]>([]);
   const [excelFile, setExcelFile] = useState<File | null>(null);
-  interface ArchiveItem {
-    label: string;
-    type: "folder" | "file";
-    children?: ArchiveItem[];
-  }
   const [archiveModel, setArchiveModel] = useState<ArchiveItem | null>(null);
   const [showArchiveModel, setShowArchiveModel] = useState(false);
   const [isGeneratingModel, setIsGeneratingModel] = useState(false);
 
-  // validate connections and log them
+  // disallow a second incoming edge into blue/violet/orange targets
   const onConnect = useCallback(
-    (params: any) => {
-      const sourceNode = nodes.find((n: any) => n.id === params.source);
-      const targetNode = nodes.find((n: any) => n.id === params.target);
+    (params: Connection) => {
+      const targetNode = nodes.find((n) => n.id === params.target);
 
-      console.log("Creating connection:", {
-        source: {
-          id: sourceNode?.id,
-          type: sourceNode?.type,
-          label: sourceNode?.data?.label,
-        },
-        target: {
-          id: targetNode?.id,
-          type: targetNode?.type,
-          label: targetNode?.data?.label,
-        },
-      });
-
-      // Проверяем синие узлы
       if (targetNode && targetNode.type === "blue") {
-        const hasIncoming = edges.some((e: any) => e.target === params.target);
+        const hasIncoming = edges.some((e) => e.target === params.target);
         if (hasIncoming) {
           return; // запрещаем повторные входящие соединения
         }
       }
 
-      setEdges((eds: any) => {
-        const newEdge = addEdge(params, eds);
-        console.log("Updated edges:", newEdge);
-        return newEdge;
-      });
+      setEdges((eds) => addEdge(params, eds));
     },
     [setEdges, nodes, edges]
   );
@@ -87,18 +80,18 @@ const CustomNodeFlow = () => {
       if (e.key === "Delete" || e.key === "Backspace") {
         // IDs of selected green nodes
         const selectedGreenIds = nodes
-          .filter((n: any) => n.selected && n.type === "green")
-          .map((n: any) => n.id);
+          .filter((n) => n.selected && n.type === "green")
+          .map((n) => n.id);
 
         // If any green nodes selected -> delete them and any edges connected to them
         if (selectedGreenIds.length > 0) {
-          setNodes((nds: any) =>
-            nds.filter((n: any) => !selectedGreenIds.includes(n.id))
+          setNodes((nds) =>
+            nds.filter((n) => !selectedGreenIds.includes(n.id))
           );
 
-          setEdges((eds: any) =>
+          setEdges((eds) =>
             eds.filter(
-              (edge: any) =>
+              (edge) =>
                 !selectedGreenIds.includes(edge.source) &&
                 !selectedGreenIds.includes(edge.target) &&
                 !edge.selected
@@ -108,7 +101,7 @@ const CustomNodeFlow = () => {
         }
 
         // Otherwise delete selected edges as before
-        setEdges((eds: any) => eds.filter((edge: any) => !edge.selected));
+        setEdges((eds) => eds.filter((edge) => !edge.selected));
       }
     };
 
@@ -166,18 +159,17 @@ const CustomNodeFlow = () => {
     setIsGeneratingModel(true);
     try {
       // Проверим, есть ли оранжевый узел и подключённые к нему зелёные узлы
-      const orangeNode = nodes.find((n: any) => n.type === "orange");
+      const orangeNode = nodes.find((n) => n.type === "orange");
       if (!orangeNode) {
         alert(
           'Не найден оранжевый узел ("разбивать на папки"). Пожалуйста, добавьте оранжевый узел.'
         );
-        setIsGeneratingModel(false);
         return;
       }
 
-      const greenConnections = edges.filter((edge: any) => {
-        const sourceNode = nodes.find((n: any) => n.id === edge.source);
-        const targetNode = nodes.find((n: any) => n.id === edge.target);
+      const greenConnections = edges.filter((edge) => {
+        const sourceNode = nodes.find((n) => n.id === edge.source);
+        const targetNode = nodes.find((n) => n.id === edge.target);
         return (
           (sourceNode?.type === "green" && targetNode?.id === orangeNode.id) ||
           (targetNode?.type === "green" && sourceNode?.id === orangeNode.id)
@@ -188,74 +180,19 @@ const CustomNodeFlow = () => {
         alert(
           'Нужно соединение хотя бы одного зелёного узла с оранжевым узлом "разбивать на папки"'
         );
-        setIsGeneratingModel(false);
         return;
       }
 
-      // Формируем полезную нагрузку: узлы и связи
-      const payload = {
-        nodes: nodes.map(({ id, type, data }: any) => ({ id, type, data })),
-        connections: edges.map(({ source, target }: any) => ({
-          source,
-          target,
-        })),
-      };
-
-      console.log("Sending archive model request payload:", payload);
-
-      // Попробуем отправить на бэкенд. Если бэкенда нет или он вернёт ошибку,
-      // используем локальную заглушку в формате ожидаемой модели архива.
-      let modelResponse: any = null;
-
-      try {
-        const res = await fetch("http://localhost:3000/api/archive-model", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-        });
-
-        if (res.ok) {
-          modelResponse = await res.json();
-          console.log("Received archive model from backend:", modelResponse);
-        } else {
-          console.warn("Backend responded with status", res.status);
-        }
-      } catch (fetchErr) {
-        console.warn("Failed to reach backend, using local stub:", fetchErr);
-      }
-
-      // Заглушка: формат должен соответствовать интерфейсу ArchiveItem
-      const stubModel: ArchiveItem = {
-        label: "Архив",
-        type: "folder",
-        children: [
-          {
-            label: "1_объединенные файлы",
-            type: "folder",
-            children: [],
-          },
-          // Пример папок для зелёных узлов — можно расширить
-          ...(nodes
-            .filter((n: any) => n.type === "green")
-            .map((g: any) => ({
-              label: g.data?.label || `green_${g.id}`,
-              type: "folder",
-              children: [
-                {
-                  label: `Пример файла для ${g.data?.label || g.id}`,
-                  type: "file",
-                },
-              ],
-            })) as ArchiveItem[]),
-        ],
-      };
-
-      const finalModel = modelResponse || stubModel;
-      setArchiveModel(finalModel);
+      const model = await getArchiveModel(buildPayload(nodes, edges));
+      setArchiveModel(model);
       setShowArchiveModel(true);
     } catch (error) {
       console.error("Error generating archive model:", error);
-      alert("Ошибка при создании модели архива");
+      alert(
+        error instanceof Error
+          ? error.message
+          : "Ошибка при создании модели архива"
+      );
     } finally {
       setIsGeneratingModel(false);
     }
@@ -274,154 +211,88 @@ const CustomNodeFlow = () => {
     setImporting(true);
 
     try {
-      // Подготовка FormData для отправки файлов
-      const formData = new FormData();
-      // Excel отправляется под именем 'excel'
-      formData.append("excel", excelFile);
-      // Все Word-файлы отправляем под одним полем 'words[]' (массив)
-      wordFiles.forEach((file) => {
-        formData.append("words[]", file);
-      });
-
-      // Отправляем FormData на бэкенд и ждём списка узлов (заглушка)
-      let serverResponse = null;
-      try {
-        const res = await fetch("http://localhost:3000/api/import-nodes", {
-          method: "POST",
-          body: formData,
-        });
-
-        if (res.ok) {
-          serverResponse = await res.json();
-          console.log("Import nodes from backend:", serverResponse);
-        } else {
-          console.warn("Backend import responded with status", res.status);
-        }
-      } catch (err) {
-        console.warn(
-          "Failed to call backend import, falling back to local mocks:",
-          err
-        );
-      }
-
-      // Если сервер вернул узлы, используем их, иначе локальные мок-данные
-      const sourceNodes = serverResponse?.nodes || [
-        ...mockViolet,
-        mockOrange,
-        ...mockBlue,
-        ...mockGreen,
-      ];
+      const response = await importNodesApi(excelFile, wordFiles);
+      const sourceNodes = response.nodes;
 
       // Позиционирование узлов по типам
       const spacing = 80;
       const leftColX = -60;
       const blueColX = 180;
       const rightColX = 450;
-      const violetX = 50;
-      const orangeX = 50;
 
-      const violets = sourceNodes.filter((n: any) => n.type === "violet");
-      const orangeNode = sourceNodes.find((n: any) => n.type === "orange");
-      const blues = sourceNodes.filter((n: any) => n.type === "blue");
-      const greens = sourceNodes.filter((n: any) => n.type === "green");
+      const violets = sourceNodes.filter((n) => n.type === "violet");
+      const orangeNode = sourceNodes.find((n) => n.type === "orange");
+      const blues = sourceNodes.filter((n) => n.type === "blue");
+      const greens = sourceNodes.filter((n) => n.type === "green");
 
-      const leftNodes = [
-        ...violets.map((n: any, i: number) => ({
+      const positioned: FlowNode[] = [
+        ...violets.map((n, i) => ({
           ...n,
           position: { x: leftColX, y: 40 + i * spacing },
         })),
       ];
 
       if (orangeNode) {
-        leftNodes.push({
+        positioned.push({
           ...orangeNode,
           position: { x: leftColX, y: 40 + violets.length * spacing },
         });
       }
 
-      const blueNodes = blues.map((n: any, i: number) => ({
-        ...n,
-        position: { x: blueColX, y: 40 + i * spacing },
-      }));
-      const rightNodes = greens.map((n: any, i: number) => ({
-        ...n,
-        position: { x: rightColX, y: 40 + i * spacing },
-      }));
+      positioned.push(
+        ...blues.map((n, i) => ({
+          ...n,
+          position: { x: blueColX, y: 40 + i * spacing },
+        })),
+        ...greens.map((n, i) => ({
+          ...n,
+          position: { x: rightColX, y: 40 + i * spacing },
+        }))
+      );
 
-      setNodes([...leftNodes, ...blueNodes, ...rightNodes]);
-      window.nodes = [...leftNodes, ...blueNodes, ...rightNodes];
-      setEdges(serverResponse?.edges || []);
+      setNodes(positioned);
+      window.nodes = positioned;
+      setEdges([]);
     } catch (error) {
       console.error("Error importing nodes:", error);
-      alert("Ошибка при импорте узлов");
+      alert(
+        error instanceof Error ? error.message : "Ошибка при импорте узлов"
+      );
     }
 
     setImporting(false);
   };
 
   const startProcessing = async () => {
+    if (!excelFile) {
+      alert("Пожалуйста, прикрепите файл Excel");
+      return;
+    }
+    if (wordFiles.length === 0) {
+      alert("Пожалуйста, прикрепите хотя бы один файл Word");
+      return;
+    }
+
     try {
       setProcessing(true);
 
-      // Подготовим данные для отправки: узлы и их связи
-      const payload = {
-        nodes: nodes.map(({ id, type, data }: any) => ({ id, type, data })),
-        connections: edges.map(({ source, target }: any) => ({
-          source,
-          target,
-        })),
-      };
+      const blob = await processGraph(
+        buildPayload(nodes, edges),
+        excelFile,
+        wordFiles
+      );
 
-      // Отправляем на бэкенд и ждём ответ
-      const response = await fetch("http://localhost:3000/api/process", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(payload),
-      });
-
-      if (response.ok) {
-        const contentDisposition = response.headers.get("content-disposition");
-        console.log("Response Headers:", Array.from(response.headers.entries())); // Debugging all headers
-
-        if (contentDisposition !== null && contentDisposition.trim() !== "") {
-          const isAttachment = contentDisposition.toLowerCase().includes("attachment");
-
-          if (isAttachment) {
-            const blob = await response.blob();
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement("a");
-            a.href = url;
-
-            let filename = "archive.zip"; // fallback
-
-            const encodedMatch = contentDisposition.match(/filename\*=utf-8''([^;]+)/i);
-            if (encodedMatch && encodedMatch[1]) {
-              filename = decodeURIComponent(encodedMatch[1].trim());
-            } else {
-              const simpleMatch = contentDisposition.match(/filename="([^"]+)"/i);
-              if (simpleMatch && simpleMatch[1]) {
-                filename = simpleMatch[1].trim();
-              }
-            }
-
-            a.download = filename;
-            document.body.appendChild(a);
-            a.click();
-            a.remove();
-            window.URL.revokeObjectURL(url);
-          } else {
-            console.warn("Content-Disposition does not indicate attachment:", contentDisposition);
-          }
-        } else {
-          console.error("Content-Disposition header is missing or empty. Cannot download file.");
-        }
-      } else {
-        console.error("Failed to process request, status:", response.status);
-      }
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "archive.zip";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
     } catch (error) {
       console.error("Error during processing:", error);
+      alert(error instanceof Error ? error.message : "Ошибка при запуске");
     } finally {
       setProcessing(false);
     }

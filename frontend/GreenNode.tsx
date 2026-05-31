@@ -1,7 +1,8 @@
 import React, { memo } from "react";
 import { Handle, Position } from "@xyflow/react";
+import type { NodeComponentProps } from "./src/types";
 
-const GreenNode = ({ data, selected }) => {
+const GreenNode = ({ data, selected }: NodeComponentProps) => {
   return (
     <div className={`custom-node green-node ${selected ? "selected" : ""}`}>
       <Handle type="source" position={Position.Left} />

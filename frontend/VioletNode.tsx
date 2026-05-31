@@ -1,9 +1,10 @@
 import React, { memo } from "react";
 import { Position } from "@xyflow/react";
 import CustomHandle from "./CustomHandle";
+import type { NodeComponentProps } from "./src/types";
 
 // Генерация оттенков фиолетового для категорий
-const generateVioletShade = (index, total) => {
+const generateVioletShade = (index: number, total: number) => {
   const baseHue = 270; // Фиолетовый
   const baseSaturation = 70;
   const lightness = 85 - index * (30 / Math.max(total - 1, 1));
@@ -16,9 +17,9 @@ const generateVioletShade = (index, total) => {
   };
 };
 
-const VioletNode = ({ data, selected }) => {
+const VioletNode = ({ data, selected }: NodeComponentProps) => {
   // Получаем все узлы типа violet из глобального window.nodes
-  let categories = [];
+  let categories: string[] = [];
   if (window.nodes) {
     categories = [
       ...new Set(

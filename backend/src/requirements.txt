@@ -1,6 +1,8 @@
 fastapi==0.120.1
 docxtpl==0.20.1
+docxcompose==2.1.0
 pandas==2.3.3
 uvicorn==0.38.0
 openpyxl==3.1.5
 python-multipart==0.0.22
+pydantic-settings==2.14.1

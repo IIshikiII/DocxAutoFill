@@ -1,8 +1,9 @@
 import React, { memo } from "react";
 import { Position } from "@xyflow/react";
 import CustomHandle from "./CustomHandle";
+import type { NodeComponentProps } from "./src/types";
 
-const OrangeNode = ({ data, selected }) => {
+const OrangeNode = ({ data, selected }: NodeComponentProps) => {
   return (
     <div
       className={`custom-node orange-node ${selected ? "selected" : ""}`}

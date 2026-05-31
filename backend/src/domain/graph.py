@@ -17,9 +17,7 @@ class Edge:
 
 class NodeGraph:
     def __init__(self, nodes: list[dict], connections: list[dict]) -> None:
-        self._nodes: dict[str, Node] = {
-            n["id"]: Node(n["id"], n["type"], n["data"]) for n in nodes
-        }
+        self._nodes: dict[str, Node] = {n["id"]: Node(n["id"], n["type"], n["data"]) for n in nodes}
         self._edges: list[Edge] = [Edge(c["source"], c["target"]) for c in connections]
 
     def nodes_by_type(self, t: str) -> list[Node]:

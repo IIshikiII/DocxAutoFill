@@ -19,7 +19,7 @@ def build_archive_model(graph_data: dict) -> dict:
         folder_name = graph.green_source_label(orange.id)
 
     if folder_name is None:
-        raise ValueError("Orange node is not connected to a green (Excel column) node")
+        raise ValueError("Оранжевый узел не соединён с зелёным узлом (колонкой Excel)")
 
     return {
         "label": "Архив",

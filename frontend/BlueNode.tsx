@@ -1,10 +1,17 @@
-import React, { memo, useMemo } from "react";
+import React, { memo } from "react";
 import { Position } from "@xyflow/react";
 import CustomHandle from "./CustomHandle";
+import type { NodeComponentProps } from "./src/types";
 import mockBlue from "./api/blueNodes.json";
 
+interface CategoryStyle {
+  background: string;
+  border: string;
+  label: string;
+}
+
 // Генерация оттенков синего для категорий
-const generateBlueShade = (index, total) => {
+const generateBlueShade = (index: number, total: number) => {
   // Базовый синий цвет (RGB)
   const baseHue = 210; // Синий
   const baseSaturation = 90;
@@ -22,18 +29,21 @@ const generateBlueShade = (index, total) => {
 };
 
 // Извлекаем уникальные категории из узлов
-const uniqueCategories = [
+const uniqueCategories: string[] = [
   ...new Set(mockBlue.map((node) => node.data.category)),
 ];
-const categoryStyles = uniqueCategories.reduce((styles, category, index) => {
-  styles[category] = {
-    ...generateBlueShade(index, uniqueCategories.length),
-    label: category.charAt(0).toUpperCase() + category.slice(1), // Капитализируем первую букву
-  };
-  return styles;
-}, {});
+const categoryStyles = uniqueCategories.reduce<Record<string, CategoryStyle>>(
+  (styles, category, index) => {
+    styles[category] = {
+      ...generateBlueShade(index, uniqueCategories.length),
+      label: category.charAt(0).toUpperCase() + category.slice(1), // Капитализируем первую букву
+    };
+    return styles;
+  },
+  {}
+);
 
-const BlueNode = ({ data, selected }) => {
+const BlueNode = ({ data, selected }: NodeComponentProps) => {
   const category = data?.category || uniqueCategories[0] || "default";
 
   // If this category exists in categoryStyles use it, otherwise compute a base style
