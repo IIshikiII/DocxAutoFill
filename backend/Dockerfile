@@ -1,11 +1,17 @@
 FROM python:3.12.12-alpine3.22
 
+WORKDIR /backend
 
-COPY ./src /backend
-WORKDIR "/backend"
-RUN python3 -m venv venv
-RUN ./venv/bin/pip install --upgrade pip
-RUN ./venv/bin/pip install -r requirements.txt
+# uv is the project's package manager (see CLAUDE.md).
+RUN pip install --no-cache-dir uv
 
+# Dependency layer — cached unless requirements change.
+COPY src/requirements.txt ./requirements.txt
+RUN uv pip install --system --no-cache -r requirements.txt
 
-CMD ["./venv/bin/python3", "main.py"]
+# Application source — editing it does not invalidate the dependency layer.
+COPY src/ .
+
+EXPOSE 3000
+
+CMD ["python3", "main.py"]

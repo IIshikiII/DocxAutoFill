@@ -1,11 +1,54 @@
+# Two profiles:
+#   dev  — builds the local source (use this to test your changes)
+#   prod — pulls the pre-built ishikii/* images
+#
+# Usage:
+#   docker compose --profile dev up --build
+#   docker compose --profile prod up
+#
+# Overridable env vars (see .env files / defaults below):
+#   VITE_API_URL               backend URL used by the browser
+#   DOCXAUTOFILL_CORS_ORIGINS  JSON array of allowed CORS origins, e.g. ["http://localhost:5173"]
+
 services:
-  frontend:
-    build: ./frontend
-    image: ishikii/docx_front:refactor
-    ports:
-      - "5173:5173"
+  # --- dev: build from local code ---
   backend:
+    profiles: ["dev"]
     build: ./backend
     image: ishikii/docx_backend:refactor
     ports:
       - "3000:3000"
+    environment:
+      DOCXAUTOFILL_HOST: "0.0.0.0"
+      DOCXAUTOFILL_PORT: "3000"
+      DOCXAUTOFILL_CORS_ORIGINS: '${DOCXAUTOFILL_CORS_ORIGINS:-["*"]}'
+
+  frontend:
+    profiles: ["dev"]
+    build: ./frontend
+    image: ishikii/docx_front:refactor
+    ports:
+      - "5173:5173"
+    environment:
+      VITE_API_URL: "${VITE_API_URL:-http://localhost:3000}"
+    depends_on:
+      - backend
+
+  # --- prod: pull pre-built images ---
+  backend-prod:
+    profiles: ["prod"]
+    image: ishikii/docx_backend:refactor
+    ports:
+      - "3000:3000"
+    environment:
+      DOCXAUTOFILL_CORS_ORIGINS: '${DOCXAUTOFILL_CORS_ORIGINS:-["*"]}'
+
+  frontend-prod:
+    profiles: ["prod"]
+    image: ishikii/docx_front:refactor
+    ports:
+      - "5173:5173"
+    environment:
+      VITE_API_URL: "${VITE_API_URL:-http://localhost:3000}"
+    depends_on:
+      - backend-prod

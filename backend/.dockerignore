@@ -1,3 +1,7 @@
+.venv/
 venv/
-
-.ipynb
+__pycache__/
+*.pyc
+*.ipynb
+src/uploaded_words/*
+!src/uploaded_words/.gitkeep
