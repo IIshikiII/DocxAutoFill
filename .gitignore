@@ -1,3 +1,27 @@
 node_modules/
 venv/
 *.ipynb
+CLAUDE.md
+.claude/
+docs/REFACTORING_PLAN.md
+
+# Runtime artifacts
+archive.zip
+generated_zip/
+*.xlsx
+
+# Python cache / tooling
+__pycache__/
+.venv/
+*.egg-info/
+.ruff_cache/
+
+# Uploaded files — keep directory structure via .gitkeep
+**/uploaded_words/*
+!**/uploaded_words/.gitkeep
+
+# Windows / WSL metadata streams
+*:Zone.Identifier
+
+# Frontend build output
+dist/

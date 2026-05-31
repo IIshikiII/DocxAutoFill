@@ -1,21 +1,17 @@
+import io
+import os
+import shutil
 from typing import List, Optional
 
-from fastapi import FastAPI, UploadFile, File, Request, BackgroundTasks
-from fastapi.responses import FileResponse
-from fastapi.middleware.cors import CORSMiddleware
-import uvicorn
-
 import pandas as pd
-import openpyxl
-import io
+import uvicorn
+from docxtpl import DocxTemplate
+from fastapi import FastAPI, Request, UploadFile
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
+
 from gegerate_model import archive_model
 from generate_zip import generate_zip, get_file_names
-import os
-from docxtpl import DocxTemplate
-import shutil
-import os
-import zipfile
-
 
 app = FastAPI()
 
@@ -26,7 +22,7 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
-    expose_headers=["Content-Disposition"]
+    expose_headers=["Content-Disposition"],
 )
 
 
@@ -47,7 +43,7 @@ async def import_nodes(request: Request):
     # Excel file (may be missing)
     excel = form.get("excel")
     contents = await excel.read()
-    df = pd.read_excel(io.BytesIO(contents))
+    df = pd.read_excel(io.BytesIO(contents), dtype=str)
     excel_path = os.path.join(SAVE_DIR, "excel.xlsx")
     df.to_excel(excel_path)
     cols = df.columns.tolist()
@@ -70,10 +66,17 @@ async def import_nodes(request: Request):
     if excel is not None and isinstance(excel, UploadFile):
         excel_name = excel.filename
 
-    words_nodes = [{"id": f"v{id}", "type": "violet", "data": {
-        "label": f"{name[:-5]} <название>.docx", "category": name}} for id, name in enumerate(file_names)]
-    cols_nodes = [{"id": f"g{id}", "type": "green", "data": {
-        "label": value}} for id, value in enumerate(cols)]
+    words_nodes = [
+        {
+            "id": f"v{id}",
+            "type": "violet",
+            "data": {"label": f"{name[:-5]} <название>.docx", "category": name},
+        }
+        for id, name in enumerate(file_names)
+    ]
+    cols_nodes = [
+        {"id": f"g{id}", "type": "green", "data": {"label": value}} for id, value in enumerate(cols)
+    ]
 
     word_fill_nodes = []
 
@@ -87,8 +90,16 @@ async def import_nodes(request: Request):
         file_stream = io.BytesIO(content)
         doc = DocxTemplate(file_stream)
         for id2, elem in enumerate(doc.get_undeclared_template_variables()):
-            word_fill_nodes.append({"id": str(id) + str(id2), "type": "blue", "data": {
-                                   "label": elem, "category": word_file.filename, }})
+            word_fill_nodes.append(
+                {
+                    "id": str(id) + str(id2),
+                    "type": "blue",
+                    "data": {
+                        "label": elem,
+                        "category": word_file.filename,
+                    },
+                }
+            )
     print(word_fill_nodes)
 
     return {
@@ -97,22 +108,23 @@ async def import_nodes(request: Request):
             "excel": excel_name,
             "words": file_names,
         },
-        "nodes": [*words_nodes, *cols_nodes, *word_fill_nodes,
-                  {"id": "o1", "type": "orange", "data": {
-                      "label": "разбивать на папки"}},
-
-                  ]
+        "nodes": [
+            *words_nodes,
+            *cols_nodes,
+            *word_fill_nodes,
+            {"id": "o1", "type": "orange", "data": {"label": "разбивать на папки"}},
+        ],
     }
 
 
 @app.post("/api/archive-model")
-async def create_model(request: Request):
+async def get_archive_model(request: Request):
     res = archive_model(await request.json())
     return res
 
 
 @app.post("/api/process")
-async def create_model(request: Request):
+async def process_documents(request: Request):
     req = await request.json()
     ZIP_DIR = "generated_zip"
     generate_zip(get_file_names(req), req, ZIP_DIR)
@@ -124,13 +136,11 @@ async def create_model(request: Request):
         zip_filename,
         media_type="application/zip",
         filename=zip_filename,
-        headers={
-            "Content-Disposition": 'attachment; filename="archive.zip"'
-        },
+        headers={"Content-Disposition": 'attachment; filename="archive.zip"'},
     )
 
     return response
 
 
 if __name__ == "__main__":
-    uvicorn.run(app, host="localhost", port=3000)
+    uvicorn.run(app, host="0.0.0.0", port=3000)

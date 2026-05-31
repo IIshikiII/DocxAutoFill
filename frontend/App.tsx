@@ -12,10 +12,10 @@ import "react-treeview/react-treeview.css";
 
 import "@xyflow/react/dist/style.css";
 
-import GreenNode from "./GreenNode.jsx";
-import BlueNode from "./BlueNode.jsx";
-import VioletNode from "./VioletNode.jsx";
-import OrangeNode from "./OrangeNode.jsx";
+import GreenNode from "./GreenNode";
+import BlueNode from "./BlueNode";
+import VioletNode from "./VioletNode";
+import OrangeNode from "./OrangeNode";
 import mockGreen from "./api/greenNodes.json";
 import mockBlue from "./api/blueNodes.json";
 import mockViolet from "./api/violetNodes.json";

@@ -1,9 +1,11 @@
 import re
+
+
 def condition(connections, node):
     for connection in connections["connections"]:
         if connection["target"] == node["id"]:
             return True
-        
+
 
 def archive_model(connections):
     files = []
@@ -18,7 +20,7 @@ def archive_model(connections):
                     for source in connections["nodes"]:
                         if source["id"] == source_id and source["type"] == "green":
                             file_label = source["data"]["label"]
-            file_name = re.sub(r'<[^<>]*>', file_label, file)
+            file_name = re.sub(r"<[^<>]*>", file_label, file)
             files.append(file_name)
     folder_name = None
     for node in connections["nodes"]:
@@ -35,30 +37,13 @@ def archive_model(connections):
         "label": "Архив",
         "type": "folder",
         "children": [
-        {
-            "label": "1_объединенные файлы",
-            "type": "folder",
-            "children": []
-        },
-        {
-            "label": folder_name+"-1",
-            "type": "folder",
-            "children": [
-                {
-                "label": obj,
-                "type": "file"
-            } for obj in files
-            ]
-        }, 
-        {
-            "label": folder_name+"-2",
-            "type": "folder",
-            "children": []
-        }, 
-        {
-            "label": "...",
-            "type": "folder",
-            "children": []
-        }, 
-        ]
+            {"label": "1_объединенные файлы", "type": "folder", "children": []},
+            {
+                "label": folder_name + "-1",
+                "type": "folder",
+                "children": [{"label": obj, "type": "file"} for obj in files],
+            },
+            {"label": folder_name + "-2", "type": "folder", "children": []},
+            {"label": "...", "type": "folder", "children": []},
+        ],
     }

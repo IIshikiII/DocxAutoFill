@@ -7,8 +7,11 @@
     "module": "ESNext",
     "resolveJsonModule": true,
     "allowJs": true,
-    "checkJs": true,
-    "isolatedModules": true
+    "checkJs": false,
+    "isolatedModules": true,
+    "strict": true,
+    "noImplicitAny": true
   },
-  "include": ["./**/*.d.ts", "./**/*.{js,jsx,ts,tsx}"],
+  "include": ["./**/*.d.ts", "./**/*.{ts,tsx}"],
+  "exclude": ["node_modules", "dist", "api"]
 }
