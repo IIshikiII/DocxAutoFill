@@ -1,9 +1,11 @@
 services:
-  frontend: 
-    image: ishikii/docx_front
+  frontend:
+    build: ./frontend
+    image: ishikii/docx_front:refactor
     ports:
-     - "5173:5173"
+      - "5173:5173"
   backend:
-    image: ishikii/docx_backend
+    build: ./backend
+    image: ishikii/docx_backend:refactor
     ports:
-     - "3000:3000"
+      - "3000:3000"
