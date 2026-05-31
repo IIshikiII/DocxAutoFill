@@ -3,24 +3,33 @@ import "@xyflow/react/dist/style.css";
 import "./styles/app.css";
 
 import FlowCanvas from "./components/FlowCanvas";
-import FileUploadPanel from "./components/FileUploadPanel";
-import ActionButtons from "./components/ActionButtons";
-import ArchiveModelView from "./components/ArchiveModelView";
+import TopBar from "./components/TopBar";
+import DataPanel from "./components/DataPanel";
+import ArchivePanel from "./components/ArchivePanel";
+import ProgressOverlay from "./components/ProgressOverlay";
 import { useFlowGraph } from "./hooks/useFlowGraph";
 import { useFileUploads } from "./hooks/useFileUploads";
 import { useArchiveModel } from "./hooks/useArchiveModel";
-import { importNodes as importNodesApi, processGraph } from "./api/client";
+import { useProcessing } from "./hooks/useProcessing";
+import { importNodes as importNodesApi } from "./api/client";
 import { positionImportedNodes } from "./utils/layout";
-import { toGraphPayload } from "./utils/graphPayload";
 
 const App = () => {
-  const { nodes, edges, setNodes, setEdges, onNodesChange, onEdgesChange, onConnect } =
-    useFlowGraph();
+  const {
+    nodes,
+    edges,
+    setNodes,
+    setEdges,
+    onNodesChange,
+    onEdgesChange,
+    onConnect,
+  } = useFlowGraph();
   const { wordFiles, excelFile, addWordFiles, removeWordFile, setExcelFile } =
     useFileUploads();
   const archive = useArchiveModel();
+  const { processing, progress, run } = useProcessing();
   const [importing, setImporting] = useState(false);
-  const [processing, setProcessing] = useState(false);
+  const [dataOpen, setDataOpen] = useState(true);
 
   const requireFiles = () => {
     if (!excelFile) {
@@ -51,36 +60,27 @@ const App = () => {
     }
   };
 
-  const startProcessing = async () => {
+  const startProcessing = () => {
     if (!requireFiles() || !excelFile) {
       return;
     }
-    setProcessing(true);
-    try {
-      const blob = await processGraph(
-        toGraphPayload(nodes, edges),
-        excelFile,
-        wordFiles
-      );
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = "archive.zip";
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      window.URL.revokeObjectURL(url);
-    } catch (error) {
-      console.error("Error during processing:", error);
-      alert(error instanceof Error ? error.message : "Ошибка при запуске");
-    } finally {
-      setProcessing(false);
-    }
+    void run(nodes, edges, excelFile, wordFiles);
   };
 
   return (
-    <div className="app-root">
-      <div className="canvas-pane">
+    <div className="app">
+      <TopBar
+        dataOpen={dataOpen}
+        onToggleData={() => setDataOpen((open) => !open)}
+        onGenerateModel={() => archive.generate(nodes, edges)}
+        onProcess={startProcessing}
+        importing={importing}
+        processing={processing}
+        isGeneratingModel={archive.loading}
+        hasNodes={nodes.length > 0}
+      />
+
+      <div className="stage">
         <FlowCanvas
           nodes={nodes}
           edges={edges}
@@ -88,30 +88,39 @@ const App = () => {
           onEdgesChange={onEdgesChange}
           onConnect={onConnect}
         />
-      </div>
 
-      <div className="controls-pane">
-        <FileUploadPanel
+        {nodes.length === 0 && (
+          <div className="canvas-hint">
+            <div className="canvas-hint-card">
+              <div className="canvas-hint-icon">🎯</div>
+              <p>
+                Откройте «Файлы», загрузите таблицу и шаблоны, затем нажмите
+                «Импортировать».
+              </p>
+            </div>
+          </div>
+        )}
+
+        <DataPanel
+          open={dataOpen}
+          onClose={() => setDataOpen(false)}
           wordFiles={wordFiles}
           excelFile={excelFile}
           onAddWordFiles={addWordFiles}
           onRemoveWordFile={removeWordFile}
           onSelectExcel={setExcelFile}
-        />
-
-        <ActionButtons
           importing={importing}
           processing={processing}
-          isGeneratingModel={archive.loading}
-          hasNodes={nodes.length > 0}
           onImport={importNodes}
-          onGenerateModel={() => archive.generate(nodes, edges)}
-          onProcess={startProcessing}
         />
 
-        {archive.visible && archive.archiveModel && (
-          <ArchiveModelView model={archive.archiveModel} onClose={archive.hide} />
-        )}
+        <ArchivePanel
+          open={archive.visible}
+          model={archive.archiveModel}
+          onClose={archive.hide}
+        />
+
+        {progress && <ProgressOverlay progress={progress} />}
       </div>
     </div>
   );

@@ -52,7 +52,7 @@ export async function getArchiveModel(
   return (await res.json()) as ArchiveItem;
 }
 
-/** Run generation and get the resulting archive as a Blob. */
+/** Run generation and get the resulting archive as a Blob (non-streaming). */
 export async function processGraph(
   graph: GraphPayload,
   excel: File,
@@ -70,4 +70,90 @@ export async function processGraph(
     throw new Error(await errorDetail(res));
   }
   return res.blob();
+}
+
+/** Progress tick reported by the streaming process endpoint. */
+export interface ProcessProgress {
+  done: number;
+  total: number;
+  percent: number;
+  message: string;
+}
+
+function decodeBase64Zip(data: string): Blob {
+  const binary = atob(data);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i += 1) {
+    bytes[i] = binary.charCodeAt(i);
+  }
+  return new Blob([bytes], { type: "application/zip" });
+}
+
+function parseSseFrame(frame: string): { event: string; data: string } {
+  let event = "message";
+  let data = "";
+  for (const line of frame.split("\n")) {
+    if (line.startsWith("event:")) {
+      event = line.slice("event:".length).trim();
+    } else if (line.startsWith("data:")) {
+      data += line.slice("data:".length).trim();
+    }
+  }
+  return { event, data };
+}
+
+/**
+ * Run generation while receiving live progress via Server-Sent Events.
+ * Calls `onProgress` for each tick and resolves with the archive Blob.
+ */
+export async function processGraphStream(
+  graph: GraphPayload,
+  excel: File,
+  words: File[],
+  onProgress: (progress: ProcessProgress) => void
+): Promise<Blob> {
+  const form = new FormData();
+  appendFiles(form, excel, words);
+  form.append("graph", JSON.stringify(graph));
+
+  const res = await fetch(`${API_BASE_URL}/api/process/stream`, {
+    method: "POST",
+    body: form,
+  });
+  if (!res.ok || !res.body) {
+    throw new Error(await errorDetail(res));
+  }
+
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+  let result: Blob | null = null;
+  let failure: string | null = null;
+
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+
+    let sep: number;
+    while ((sep = buffer.indexOf("\n\n")) !== -1) {
+      const frame = buffer.slice(0, sep);
+      buffer = buffer.slice(sep + 2);
+      const { event, data } = parseSseFrame(frame);
+      if (!data) continue;
+      const payload = JSON.parse(data);
+
+      if (event === "progress") {
+        onProgress(payload as ProcessProgress);
+      } else if (event === "done") {
+        result = decodeBase64Zip(payload.data as string);
+      } else if (event === "error") {
+        failure = payload.detail as string;
+      }
+    }
+  }
+
+  if (failure) throw new Error(failure);
+  if (!result) throw new Error("Сервер не вернул архив");
+  return result;
 }

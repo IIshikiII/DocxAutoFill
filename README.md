@@ -93,8 +93,12 @@ Backend on port 3000. Errors return `{ detail }` with a `400` (bad input) or
 | POST | `/api/import-nodes` | multipart: `excel`, `words[]` | `{ status, received, nodes[] }` |
 | POST | `/api/archive-model` | JSON `{ nodes[], connections[] }` | folder/file tree `{ label, type, children[] }` |
 | POST | `/api/process` | multipart: `excel`, `words[]`, `graph` (JSON string `{ nodes[], connections[] }`) | `archive.zip` (streamed) |
+| POST | `/api/process/stream` | same as `/process` | Server-Sent Events: `progress` `{ done, total, percent, message }`, then `done` `{ filename, data }` (base64 zip), or `error` `{ detail }` |
 
 `nodes[]`: `{ id, type, data: { label, category? } }` · `connections[]`: `{ source, target }`.
+
+For long jobs the UI calls `/api/process/stream`, which reports live progress via
+Server-Sent Events and returns the finished archive in the final `done` event.
 
 ## Code quality
 

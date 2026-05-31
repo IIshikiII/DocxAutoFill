@@ -14,10 +14,10 @@ const FileUploadPanel = ({
   onSelectExcel,
 }: FileUploadPanelProps) => {
   return (
-    <div className="upload-column">
+    <div className="upload-stack">
       {/* Word files */}
       <div className="upload-card">
-        <h3>Файлы Word</h3>
+        <h3>Шаблоны Word</h3>
         <input
           id="wordInput"
           type="file"
@@ -53,7 +53,7 @@ const FileUploadPanel = ({
 
       {/* Excel file */}
       <div className="upload-card">
-        <h3>Файл Excel</h3>
+        <h3>Таблица Excel</h3>
         <input
           id="excelInput"
           type="file"

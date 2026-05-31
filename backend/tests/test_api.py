@@ -1,3 +1,4 @@
+import base64
 import json
 
 
@@ -55,9 +56,8 @@ def test_archive_model_unconnected_orange_returns_400(client):
     assert response.status_code == 400
 
 
-def test_process_returns_zip(client, upload_files):
-    # First import to learn the node ids, then wire a complete graph.
-    imported = client.post("/api/import-nodes", files=upload_files).json()["nodes"]
+def _wire_full_graph(imported):
+    """Build a complete graph (green→blue/violet/orange) from imported nodes."""
 
     def node_id(node_type, label=None, category=None):
         for n in imported:
@@ -70,20 +70,25 @@ def test_process_returns_zip(client, upload_files):
             return n["id"]
         raise AssertionError(f"node not found: {node_type} {label} {category}")
 
-    green_fio = node_id("green", label="ФИО")
-    green_group = node_id("green", label="Группа")
-    blue_var = node_id("blue", category="tpl.docx")
-    violet = node_id("violet", category="tpl.docx")
-    orange = node_id("orange")
-
-    graph = {
+    return {
         "nodes": imported,
         "connections": [
-            {"source": green_fio, "target": blue_var},
-            {"source": green_fio, "target": violet},
-            {"source": green_group, "target": orange},
+            {
+                "source": node_id("green", label="ФИО"),
+                "target": node_id("blue", category="tpl.docx"),
+            },
+            {
+                "source": node_id("green", label="ФИО"),
+                "target": node_id("violet", category="tpl.docx"),
+            },
+            {"source": node_id("green", label="Группа"), "target": node_id("orange")},
         ],
     }
+
+
+def test_process_returns_zip(client, upload_files):
+    imported = client.post("/api/import-nodes", files=upload_files).json()["nodes"]
+    graph = _wire_full_graph(imported)
 
     response = client.post(
         "/api/process",
@@ -93,3 +98,62 @@ def test_process_returns_zip(client, upload_files):
     assert response.status_code == 200
     assert response.headers["content-type"] == "application/zip"
     assert response.content[:2] == b"PK"  # zip magic bytes
+
+
+def _parse_sse(text):
+    """Parse an SSE stream body into a list of (event, json-data) pairs."""
+    events = []
+    for frame in text.strip().split("\n\n"):
+        event, data = None, None
+        for line in frame.splitlines():
+            if line.startswith("event:"):
+                event = line[len("event:") :].strip()
+            elif line.startswith("data:"):
+                data = line[len("data:") :].strip()
+        if event:
+            events.append((event, json.loads(data) if data else None))
+    return events
+
+
+def test_process_stream_emits_progress_then_archive(client, upload_files):
+    imported = client.post("/api/import-nodes", files=upload_files).json()["nodes"]
+    graph = _wire_full_graph(imported)
+
+    response = client.post(
+        "/api/process/stream",
+        files=upload_files,
+        data={"graph": json.dumps(graph)},
+    )
+    assert response.status_code == 200
+    assert response.headers["content-type"].startswith("text/event-stream")
+
+    events = _parse_sse(response.text)
+    kinds = [e[0] for e in events]
+    assert "progress" in kinds
+    assert kinds[-1] == "done"
+
+    # Progress percentages are monotonic and bounded.
+    percents = [e[1]["percent"] for e in events if e[0] == "progress"]
+    assert percents == sorted(percents)
+    assert max(percents) <= 100
+
+    # The final event carries a valid base64 zip.
+    payload = events[-1][1]
+    assert payload["filename"] == "archive.zip"
+    assert base64.b64decode(payload["data"])[:2] == b"PK"
+
+
+def test_process_stream_reports_errors_inline(client, upload_files):
+    # A graph with no orange→green link fails inside generation -> SSE error event.
+    imported = client.post("/api/import-nodes", files=upload_files).json()["nodes"]
+    graph = {"nodes": imported, "connections": []}
+
+    response = client.post(
+        "/api/process/stream",
+        files=upload_files,
+        data={"graph": json.dumps(graph)},
+    )
+    assert response.status_code == 200
+    events = _parse_sse(response.text)
+    assert events[-1][0] == "error"
+    assert "detail" in events[-1][1]
