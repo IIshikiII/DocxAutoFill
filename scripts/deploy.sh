@@ -25,7 +25,13 @@ if [ -n "${IMAGE_TAG:-}" ] && [ -f .env ]; then
   fi
 fi
 
-set -a; [ -f .env ] && . ./.env; set +a
+# Read only the values this script needs, without exporting them. Sourcing the
+# whole .env and exporting it would let docker compose pick mangled values from
+# the shell (e.g. bash strips the inner quotes of a JSON array like
+# DOCXAUTOFILL_CORS_ORIGINS) instead of reading the .env file verbatim.
+get_env() { grep -E "^$1=" .env 2>/dev/null | head -1 | cut -d= -f2-; }
+POSTGRES_USER="$(get_env POSTGRES_USER)"
+POSTGRES_DB="$(get_env POSTGRES_DB)"
 COMPOSE=(docker compose -f "$COMPOSE_FILE")
 
 echo "[1/5] Backing up the database…"
