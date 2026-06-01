@@ -4,8 +4,14 @@ import json
 import zipfile
 
 
-def test_import_nodes_ok(client, upload_files):
+def test_protected_endpoint_requires_auth(client, upload_files):
+    """Without a session cookie, app endpoints return 401."""
     response = client.post("/api/import-nodes", files=upload_files)
+    assert response.status_code == 401
+
+
+def test_import_nodes_ok(auth_client, upload_files):
+    response = auth_client.post("/api/import-nodes", files=upload_files)
     assert response.status_code == 200
 
     body = response.json()
@@ -20,14 +26,14 @@ def test_import_nodes_ok(client, upload_files):
     assert blue["data"]["category"] == "tpl.docx"
 
 
-def test_import_nodes_missing_excel_returns_400(client, docx_bytes):
+def test_import_nodes_missing_excel_returns_400(auth_client, docx_bytes):
     files = [("words[]", ("tpl.docx", docx_bytes, "application/octet-stream"))]
-    response = client.post("/api/import-nodes", files=files)
+    response = auth_client.post("/api/import-nodes", files=files)
     assert response.status_code == 400
     assert "Excel" in response.json()["detail"]
 
 
-def test_archive_model_ok(client):
+def test_archive_model_ok(auth_client):
     graph = {
         "nodes": [
             {"id": "g1", "type": "green", "data": {"label": "Группа"}},
@@ -44,17 +50,17 @@ def test_archive_model_ok(client):
             {"source": "g1", "target": "o1"},
         ],
     }
-    response = client.post("/api/archive-model", json=graph)
+    response = auth_client.post("/api/archive-model", json=graph)
     assert response.status_code == 200
     assert response.json()["label"] == "Архив"
 
 
-def test_archive_model_unconnected_orange_returns_400(client):
+def test_archive_model_unconnected_orange_returns_400(auth_client):
     graph = {
         "nodes": [{"id": "o1", "type": "orange", "data": {"label": "folders"}}],
         "connections": [],
     }
-    response = client.post("/api/archive-model", json=graph)
+    response = auth_client.post("/api/archive-model", json=graph)
     assert response.status_code == 400
 
 
@@ -88,11 +94,11 @@ def _wire_full_graph(imported):
     }
 
 
-def test_process_returns_zip(client, upload_files):
-    imported = client.post("/api/import-nodes", files=upload_files).json()["nodes"]
+def test_process_returns_zip(auth_client, upload_files):
+    imported = auth_client.post("/api/import-nodes", files=upload_files).json()["nodes"]
     graph = _wire_full_graph(imported)
 
-    response = client.post(
+    response = auth_client.post(
         "/api/process",
         files=upload_files,
         data={"graph": json.dumps(graph)},
@@ -102,12 +108,12 @@ def test_process_returns_zip(client, upload_files):
     assert response.content[:2] == b"PK"  # zip magic bytes
 
 
-def test_process_lays_files_directly_in_grouping_folders(client, upload_files):
+def test_process_lays_files_directly_in_grouping_folders(auth_client, upload_files):
     """Rendered files sit at <group>/<file>.docx, not in a <template>.docx subfolder."""
-    imported = client.post("/api/import-nodes", files=upload_files).json()["nodes"]
+    imported = auth_client.post("/api/import-nodes", files=upload_files).json()["nodes"]
     graph = _wire_full_graph(imported)
 
-    response = client.post(
+    response = auth_client.post(
         "/api/process",
         files=upload_files,
         data={"graph": json.dumps(graph)},
@@ -125,15 +131,15 @@ def test_process_lays_files_directly_in_grouping_folders(client, upload_files):
     assert any("Объединённый_tpl.docx" in n for n in names), names
 
 
-def test_process_honours_custom_archive_options(client, upload_files):
-    imported = client.post("/api/import-nodes", files=upload_files).json()["nodes"]
+def test_process_honours_custom_archive_options(auth_client, upload_files):
+    imported = auth_client.post("/api/import-nodes", files=upload_files).json()["nodes"]
     graph = _wire_full_graph(imported)
     graph["options"] = {
         "merged_dir_name": "Сводные",
         "merged_file_template": "Все_<файл>.docx",
     }
 
-    response = client.post(
+    response = auth_client.post(
         "/api/process",
         files=upload_files,
         data={"graph": json.dumps(graph)},
@@ -143,14 +149,14 @@ def test_process_honours_custom_archive_options(client, upload_files):
     assert any("Все_tpl.docx" in n for n in names), names
 
 
-def test_process_uses_per_node_merged_label(client, upload_files):
-    imported = client.post("/api/import-nodes", files=upload_files).json()["nodes"]
+def test_process_uses_per_node_merged_label(auth_client, upload_files):
+    imported = auth_client.post("/api/import-nodes", files=upload_files).json()["nodes"]
     for node in imported:
         if node["type"] == "violet":
             node["data"]["merged_label"] = "Все дипломы.docx"
     graph = _wire_full_graph(imported)
 
-    response = client.post(
+    response = auth_client.post(
         "/api/process",
         files=upload_files,
         data={"graph": json.dumps(graph)},
@@ -174,11 +180,11 @@ def _parse_sse(text):
     return events
 
 
-def test_process_stream_emits_progress_then_archive(client, upload_files):
-    imported = client.post("/api/import-nodes", files=upload_files).json()["nodes"]
+def test_process_stream_emits_progress_then_archive(auth_client, upload_files):
+    imported = auth_client.post("/api/import-nodes", files=upload_files).json()["nodes"]
     graph = _wire_full_graph(imported)
 
-    response = client.post(
+    response = auth_client.post(
         "/api/process/stream",
         files=upload_files,
         data={"graph": json.dumps(graph)},
@@ -202,12 +208,12 @@ def test_process_stream_emits_progress_then_archive(client, upload_files):
     assert base64.b64decode(payload["data"])[:2] == b"PK"
 
 
-def test_process_stream_reports_errors_inline(client, upload_files):
+def test_process_stream_reports_errors_inline(auth_client, upload_files):
     # A graph with no orange→green link fails inside generation -> SSE error event.
-    imported = client.post("/api/import-nodes", files=upload_files).json()["nodes"]
+    imported = auth_client.post("/api/import-nodes", files=upload_files).json()["nodes"]
     graph = {"nodes": imported, "connections": []}
 
-    response = client.post(
+    response = auth_client.post(
         "/api/process/stream",
         files=upload_files,
         data={"graph": json.dumps(graph)},

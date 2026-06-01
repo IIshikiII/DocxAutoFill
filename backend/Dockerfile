@@ -1,4 +1,6 @@
-FROM python:3.12.12-alpine3.22
+# Debian slim (glibc) so the psycopg[binary] wheel installs without a build
+# toolchain — Alpine (musl) has no prebuilt psycopg binary wheel.
+FROM python:3.12.12-slim
 
 WORKDIR /backend
 

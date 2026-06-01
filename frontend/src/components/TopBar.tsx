@@ -1,3 +1,5 @@
+import type { AuthUser } from "../types";
+
 interface TopBarProps {
   dataOpen: boolean;
   onToggleData: () => void;
@@ -7,6 +9,9 @@ interface TopBarProps {
   processing: boolean;
   isGeneratingModel: boolean;
   hasNodes: boolean;
+  user: AuthUser;
+  onOpenAdmin: () => void;
+  onLogout: () => void;
 }
 
 const TopBar = ({
@@ -18,6 +23,9 @@ const TopBar = ({
   processing,
   isGeneratingModel,
   hasNodes,
+  user,
+  onOpenAdmin,
+  onLogout,
 }: TopBarProps) => {
   const busy = importing || processing;
 
@@ -54,6 +62,25 @@ const TopBar = ({
         >
           <span>{processing ? "Генерация…" : "Запуск"}</span>
           {processing && <span className="spinner light" />}
+        </button>
+      </div>
+
+      <div className="topbar-user">
+        {user.role === "admin" && (
+          <button className="btn ghost" onClick={onOpenAdmin} title="Управление пользователями">
+            <span>👑</span>
+            <span>Админ</span>
+          </button>
+        )}
+        <div className="user-chip" title={`Вы вошли как ${user.username}`}>
+          <span className="user-avatar">{user.username.charAt(0).toUpperCase()}</span>
+          <span className="user-name">{user.username}</span>
+          <span className={`role-badge ${user.role}`}>
+            {user.role === "admin" ? "админ" : "польз."}
+          </span>
+        </div>
+        <button className="icon-btn" onClick={onLogout} title="Выйти" aria-label="Выйти">
+          ⎋
         </button>
       </div>
     </header>

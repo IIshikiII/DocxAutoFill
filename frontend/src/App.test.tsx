@@ -1,24 +1,21 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import App from "./App";
 
-describe("App", () => {
-  it("renders the action buttons on an empty canvas", () => {
-    render(<App />);
-    expect(screen.getByRole("button", { name: "Импортировать" })).toBeTruthy();
-    expect(
-      screen.getByRole("button", { name: "Создать модель архива" })
-    ).toBeTruthy();
-    expect(screen.getByRole("button", { name: "Запуск" })).toBeTruthy();
-  });
+vi.mock("./api/client", async (importActual) => {
+  const actual = await importActual<typeof import("./api/client")>();
+  return {
+    ...actual,
+    getMe: vi.fn().mockResolvedValue(null),
+    listTemplates: vi.fn().mockResolvedValue([]),
+  };
+});
 
-  it("disables generate/run until nodes are imported", () => {
+describe("App auth gate", () => {
+  it("shows the login screen when not authenticated", async () => {
     render(<App />);
-    const run = screen.getByRole("button", { name: "Запуск" });
-    const generate = screen.getByRole("button", {
-      name: "Создать модель архива",
-    });
-    expect((run as HTMLButtonElement).disabled).toBe(true);
-    expect((generate as HTMLButtonElement).disabled).toBe(true);
+    expect(
+      await screen.findByRole("button", { name: "Войти" })
+    ).toBeTruthy();
   });
 });
