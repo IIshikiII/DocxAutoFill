@@ -6,11 +6,41 @@
 #   docker compose --profile dev up --build
 #   docker compose --profile prod up
 #
-# Overridable env vars (see .env files / defaults below):
-#   VITE_API_URL               backend URL used by the browser
-#   DOCXAUTOFILL_CORS_ORIGINS  JSON array of allowed CORS origins, e.g. ["http://localhost:5173"]
+# Configuration comes from a root `.env` file (see `.env.example`):
+#   POSTGRES_USER / POSTGRES_PASSWORD / POSTGRES_DB   PostgreSQL credentials
+#   DOCXAUTOFILL_ADMIN_USERNAME / _ADMIN_PASSWORD      bootstrap admin account
+#   DOCXAUTOFILL_COOKIE_SECURE                         true behind HTTPS/nginx
+#   DOCXAUTOFILL_CORS_ORIGINS                          JSON array of origins
+#   VITE_API_URL                                       browser-facing backend URL
+#
+# Data persists in the named `pgdata` volume across container recreation.
+
+x-backend-env: &backend-env
+  DOCXAUTOFILL_HOST: "0.0.0.0"
+  DOCXAUTOFILL_PORT: "3000"
+  DOCXAUTOFILL_DATABASE_URL: "postgresql+psycopg://${POSTGRES_USER:-docxautofill}:${POSTGRES_PASSWORD:-docxautofill}@db:5432/${POSTGRES_DB:-docxautofill}"
+  DOCXAUTOFILL_ADMIN_USERNAME: "${DOCXAUTOFILL_ADMIN_USERNAME:-admin}"
+  DOCXAUTOFILL_ADMIN_PASSWORD: "${DOCXAUTOFILL_ADMIN_PASSWORD:-change-me-now-please}"
+  DOCXAUTOFILL_COOKIE_SECURE: "${DOCXAUTOFILL_COOKIE_SECURE:-false}"
+  DOCXAUTOFILL_CORS_ORIGINS: '${DOCXAUTOFILL_CORS_ORIGINS:-["http://localhost:5173"]}'
 
 services:
+  # --- PostgreSQL (shared by both profiles) ---
+  db:
+    profiles: ["dev", "prod"]
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: "${POSTGRES_USER:-docxautofill}"
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:-docxautofill}"
+      POSTGRES_DB: "${POSTGRES_DB:-docxautofill}"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-docxautofill} -d ${POSTGRES_DB:-docxautofill}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
   # --- dev: build from local code ---
   backend:
     profiles: ["dev"]
@@ -18,10 +48,10 @@ services:
     image: ishikii/docx_backend:refactor
     ports:
       - "3000:3000"
-    environment:
-      DOCXAUTOFILL_HOST: "0.0.0.0"
-      DOCXAUTOFILL_PORT: "3000"
-      DOCXAUTOFILL_CORS_ORIGINS: '${DOCXAUTOFILL_CORS_ORIGINS:-["*"]}'
+    environment: *backend-env
+    depends_on:
+      db:
+        condition: service_healthy
 
   frontend:
     profiles: ["dev"]
@@ -40,8 +70,10 @@ services:
     image: ishikii/docx_backend:refactor
     ports:
       - "3000:3000"
-    environment:
-      DOCXAUTOFILL_CORS_ORIGINS: '${DOCXAUTOFILL_CORS_ORIGINS:-["*"]}'
+    environment: *backend-env
+    depends_on:
+      db:
+        condition: service_healthy
 
   frontend-prod:
     profiles: ["prod"]
@@ -52,3 +84,6 @@ services:
       VITE_API_URL: "${VITE_API_URL:-http://localhost:3000}"
     depends_on:
       - backend-prod
+
+volumes:
+  pgdata:

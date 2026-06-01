@@ -89,6 +89,29 @@ export interface ConnectionTemplate {
   connectionCount: number;
 }
 
+/** Access role (Stage 12). */
+export type Role = "admin" | "user";
+
+/** The authenticated user, as returned by `/api/auth/me` and `/login`. */
+export interface AuthUser {
+  id: number;
+  username: string;
+  role: Role;
+  isActive: boolean;
+}
+
+/** A user row in the admin panel (includes the template count). */
+export interface AdminUser extends AuthUser {
+  templateCount: number;
+}
+
+/** A template entry shown to an admin browsing a user's library. */
+export interface AdminTemplate {
+  id: number;
+  name: string;
+  connectionCount: number;
+}
+
 /** Result of resolving a template against the current canvas nodes. */
 export interface ApplyTemplateResult {
   connections: WireEdge[];

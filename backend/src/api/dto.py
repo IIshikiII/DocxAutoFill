@@ -88,3 +88,41 @@ class ApplyTemplateResponse(BaseModel):
     connections: list[EdgeDTO] = Field(default_factory=list)
     matched: int
     total: int
+
+
+# --- Auth / users (Stage 12) ---
+
+
+class LoginRequest(BaseModel):
+    username: str
+    password: str
+
+
+class UserDTO(BaseModel):
+    """Public-safe view of a user (never includes the password hash)."""
+
+    id: int
+    username: str
+    role: str
+    is_active: bool
+
+
+class UserWithStats(UserDTO):
+    template_count: int
+
+
+class CreateUserRequest(BaseModel):
+    username: str
+    password: str
+
+
+class SetPasswordRequest(BaseModel):
+    password: str
+
+
+class AdminTemplateDTO(BaseModel):
+    """A template as seen by an admin browsing another user's library."""
+
+    id: int
+    name: str
+    connection_count: int

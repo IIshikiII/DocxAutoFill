@@ -1,12 +1,32 @@
 import { API_BASE_URL } from "../config";
 import type {
+  AdminTemplate,
+  AdminUser,
   ApplyTemplateResult,
   ArchiveItem,
+  AuthUser,
   ConnectionTemplate,
   GraphPayload,
   ImportResponse,
+  Role,
   WireNode,
 } from "../types";
+
+interface WireUser {
+  id: number;
+  username: string;
+  role: string;
+  is_active: boolean;
+}
+
+function toAuthUser(u: WireUser): AuthUser {
+  return {
+    id: u.id,
+    username: u.username,
+    role: u.role as Role,
+    isActive: u.is_active,
+  };
+}
 
 /** Extract a human-readable error message from a failed response. */
 async function errorDetail(res: Response): Promise<string> {
@@ -36,6 +56,7 @@ export async function importNodes(
 
   const res = await fetch(`${API_BASE_URL}/api/import-nodes`, {
     method: "POST",
+    credentials: "include",
     body: form,
   });
   if (!res.ok) {
@@ -50,6 +71,7 @@ export async function getArchiveModel(
 ): Promise<ArchiveItem> {
   const res = await fetch(`${API_BASE_URL}/api/archive-model`, {
     method: "POST",
+    credentials: "include",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(graph),
   });
@@ -61,7 +83,9 @@ export async function getArchiveModel(
 
 /** List saved connection templates (Stage 11). */
 export async function listTemplates(): Promise<ConnectionTemplate[]> {
-  const res = await fetch(`${API_BASE_URL}/api/templates`);
+  const res = await fetch(`${API_BASE_URL}/api/templates`, {
+    credentials: "include",
+  });
   if (!res.ok) {
     throw new Error(await errorDetail(res));
   }
@@ -81,6 +105,7 @@ export async function saveTemplate(
 ): Promise<ConnectionTemplate> {
   const res = await fetch(`${API_BASE_URL}/api/templates`, {
     method: "POST",
+    credentials: "include",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ name, graph }),
   });
@@ -98,6 +123,7 @@ export async function applyTemplate(
 ): Promise<ApplyTemplateResult> {
   const res = await fetch(`${API_BASE_URL}/api/templates/apply`, {
     method: "POST",
+    credentials: "include",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ name, nodes }),
   });
@@ -110,7 +136,7 @@ export async function applyTemplate(
 /** Delete a saved template by name. */
 export async function deleteTemplate(name: string): Promise<void> {
   const url = `${API_BASE_URL}/api/templates?name=${encodeURIComponent(name)}`;
-  const res = await fetch(url, { method: "DELETE" });
+  const res = await fetch(url, { method: "DELETE", credentials: "include" });
   if (!res.ok) {
     throw new Error(await errorDetail(res));
   }
@@ -128,6 +154,7 @@ export async function processGraph(
 
   const res = await fetch(`${API_BASE_URL}/api/process`, {
     method: "POST",
+    credentials: "include",
     body: form,
   });
   if (!res.ok) {
@@ -182,6 +209,7 @@ export async function processGraphStream(
 
   const res = await fetch(`${API_BASE_URL}/api/process/stream`, {
     method: "POST",
+    credentials: "include",
     body: form,
   });
   if (!res.ok || !res.body) {
@@ -220,4 +248,117 @@ export async function processGraphStream(
   if (failure) throw new Error(failure);
   if (!result) throw new Error("Сервер не вернул архив");
   return result;
+}
+
+// --- Auth (Stage 12) ---------------------------------------------------------
+
+/** Return the current user, or null if not authenticated (no error thrown). */
+export async function getMe(): Promise<AuthUser | null> {
+  const res = await fetch(`${API_BASE_URL}/api/auth/me`, {
+    credentials: "include",
+  });
+  if (res.status === 401) return null;
+  if (!res.ok) throw new Error(await errorDetail(res));
+  return toAuthUser((await res.json()) as WireUser);
+}
+
+/** Log in with username + password; resolves with the user or throws. */
+export async function login(
+  username: string,
+  password: string
+): Promise<AuthUser> {
+  const res = await fetch(`${API_BASE_URL}/api/auth/login`, {
+    method: "POST",
+    credentials: "include",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ username, password }),
+  });
+  if (!res.ok) throw new Error(await errorDetail(res));
+  return toAuthUser((await res.json()) as WireUser);
+}
+
+/** Log out the current session. */
+export async function logout(): Promise<void> {
+  await fetch(`${API_BASE_URL}/api/auth/logout`, {
+    method: "POST",
+    credentials: "include",
+  });
+}
+
+// --- Admin: user management (Stage 12) ---------------------------------------
+
+function toAdminUser(u: WireUser & { template_count: number }): AdminUser {
+  return { ...toAuthUser(u), templateCount: u.template_count };
+}
+
+export async function listUsers(): Promise<AdminUser[]> {
+  const res = await fetch(`${API_BASE_URL}/api/admin/users`, {
+    credentials: "include",
+  });
+  if (!res.ok) throw new Error(await errorDetail(res));
+  return ((await res.json()) as (WireUser & { template_count: number })[]).map(
+    toAdminUser
+  );
+}
+
+export async function createUser(
+  username: string,
+  password: string
+): Promise<AdminUser> {
+  const res = await fetch(`${API_BASE_URL}/api/admin/users`, {
+    method: "POST",
+    credentials: "include",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ username, password }),
+  });
+  if (!res.ok) throw new Error(await errorDetail(res));
+  return toAdminUser((await res.json()) as WireUser & { template_count: number });
+}
+
+export async function deleteUser(userId: number): Promise<void> {
+  const res = await fetch(`${API_BASE_URL}/api/admin/users/${userId}`, {
+    method: "DELETE",
+    credentials: "include",
+  });
+  if (!res.ok) throw new Error(await errorDetail(res));
+}
+
+export async function resetUserPassword(
+  userId: number,
+  password: string
+): Promise<void> {
+  const res = await fetch(`${API_BASE_URL}/api/admin/users/${userId}/password`, {
+    method: "POST",
+    credentials: "include",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ password }),
+  });
+  if (!res.ok) throw new Error(await errorDetail(res));
+}
+
+export async function listUserTemplates(
+  userId: number
+): Promise<AdminTemplate[]> {
+  const res = await fetch(
+    `${API_BASE_URL}/api/admin/users/${userId}/templates`,
+    { credentials: "include" }
+  );
+  if (!res.ok) throw new Error(await errorDetail(res));
+  return ((await res.json()) as {
+    id: number;
+    name: string;
+    connection_count: number;
+  }[]).map((t) => ({
+    id: t.id,
+    name: t.name,
+    connectionCount: t.connection_count,
+  }));
+}
+
+export async function deleteUserTemplate(templateId: number): Promise<void> {
+  const res = await fetch(`${API_BASE_URL}/api/admin/templates/${templateId}`, {
+    method: "DELETE",
+    credentials: "include",
+  });
+  if (!res.ok) throw new Error(await errorDetail(res));
 }

@@ -1,11 +1,15 @@
 import logging
+from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
+from api.admin import router as admin_router
+from api.auth import router as auth_router
 from api.routes import router
 from config import settings
+from db.init import init_db
 
 logging.basicConfig(
     level=logging.INFO,
@@ -13,7 +17,15 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-app = FastAPI()
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Create tables and seed the admin account before serving requests."""
+    init_db()
+    yield
+
+
+app = FastAPI(lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
@@ -24,6 +36,8 @@ app.add_middleware(
     expose_headers=["Content-Disposition"],
 )
 
+app.include_router(auth_router)
+app.include_router(admin_router)
 app.include_router(router)
 
 

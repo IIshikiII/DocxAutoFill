@@ -30,3 +30,11 @@ coverage/
 
 # Frontend build output
 dist/
+
+# Secrets / environment (keep *.env.example committed)
+.env
+**/.env
+!**/.env.example
+
+# Local SQLite database (Stage 12)
+backend/src/data/

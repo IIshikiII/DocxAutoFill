@@ -353,7 +353,10 @@
   min-width: 0;
 }
 .file-icon {
-  font-size: 18px;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  color: var(--accent);
 }
 .file-name {
   color: var(--text);
@@ -887,4 +890,312 @@
   outline: none;
   border-color: var(--accent);
   box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+}
+
+/* ============================================================
+   Auth: splash, login screen (Stage 12)
+   ============================================================ */
+.app-splash {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  color: var(--muted);
+  font-weight: 600;
+  background: var(--bg);
+}
+
+.login-screen {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  background: var(--bg);
+}
+.login-aurora {
+  position: absolute;
+  width: 720px;
+  height: 720px;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle at 30% 30%,
+    rgba(99, 102, 241, 0.55),
+    rgba(139, 92, 246, 0.25) 45%,
+    transparent 70%
+  );
+  filter: blur(40px);
+  animation: aurora 14s ease-in-out infinite alternate;
+  pointer-events: none;
+}
+@keyframes aurora {
+  0% {
+    transform: translate(-120px, -80px) scale(1);
+  }
+  100% {
+    transform: translate(120px, 80px) scale(1.15);
+  }
+}
+.login-card {
+  position: relative;
+  z-index: 1;
+  width: 360px;
+  max-width: calc(100vw - 32px);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 32px 28px;
+  border-radius: var(--radius);
+  background: var(--surface);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-lg);
+}
+.login-brand {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  font-weight: 800;
+  font-size: 20px;
+}
+.login-logo {
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  border-radius: 12px;
+  background: var(--accent-grad);
+  box-shadow: 0 6px 16px rgba(99, 102, 241, 0.35);
+  font-size: 21px;
+}
+.login-title {
+  background: var(--accent-grad);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.login-subtitle {
+  margin: -6px 0 4px;
+  color: var(--muted);
+  font-size: 14px;
+}
+.login-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--muted);
+}
+.login-field input {
+  padding: 11px 13px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-family: inherit;
+  font-size: 15px;
+  color: var(--text);
+  background: #fff;
+}
+.login-field input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+}
+.login-error {
+  padding: 9px 12px;
+  border-radius: 10px;
+  font-size: 13px;
+  background: rgba(239, 68, 68, 0.1);
+  color: #b91c1c;
+  border: 1px solid rgba(239, 68, 68, 0.35);
+}
+.login-submit {
+  margin-top: 4px;
+}
+
+/* ============================================================
+   Top-bar user menu + role badges (Stage 12)
+   ============================================================ */
+.topbar-user {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.user-chip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 10px 5px 5px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.6);
+}
+.user-avatar {
+  width: 26px;
+  height: 26px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--accent-grad);
+  color: #fff;
+  font-weight: 700;
+  font-size: 13px;
+}
+.user-name {
+  font-size: 13.5px;
+  font-weight: 600;
+  max-width: 140px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.role-badge {
+  font-size: 10.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  padding: 2px 7px;
+  border-radius: 999px;
+}
+.role-badge.admin {
+  background: rgba(245, 158, 11, 0.16);
+  color: #b45309;
+}
+.role-badge.user {
+  background: rgba(99, 102, 241, 0.12);
+  color: var(--accent);
+}
+
+.btn.danger {
+  border-color: rgba(239, 68, 68, 0.4);
+  color: #dc2626;
+  background: rgba(239, 68, 68, 0.06);
+}
+.btn.danger:hover:not(:disabled) {
+  background: rgba(239, 68, 68, 0.12);
+}
+
+/* ============================================================
+   Admin panel (Stage 12)
+   ============================================================ */
+.admin-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgba(15, 23, 42, 0.45);
+  backdrop-filter: blur(4px);
+}
+.admin-modal {
+  width: 640px;
+  max-width: 100%;
+  max-height: 86vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--surface-solid);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-lg);
+  overflow: hidden;
+}
+.admin-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border);
+}
+.admin-body {
+  padding: 18px 20px;
+  overflow-y: auto;
+}
+.admin-section-title {
+  margin: 18px 0 10px;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.admin-section-title:first-child {
+  margin-top: 0;
+}
+.admin-create-row,
+.admin-reset {
+  display: flex;
+  gap: 8px;
+}
+.admin-reset {
+  margin: 10px 0 4px;
+}
+.admin-input {
+  flex: 1;
+  min-width: 0;
+  padding: 9px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-family: inherit;
+  font-size: 14px;
+  color: var(--text);
+  background: #fff;
+}
+.admin-input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+}
+.admin-user-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.admin-user {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 12px 14px;
+  background: rgba(255, 255, 255, 0.6);
+}
+.admin-user-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.admin-user-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.admin-user-name {
+  font-weight: 600;
+  font-size: 14.5px;
+}
+.admin-self {
+  font-size: 11px;
+  color: var(--muted);
+}
+.admin-user-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.admin-user-actions .btn {
+  padding: 6px 11px;
+  font-size: 13px;
+}
+.admin-templates {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px dashed var(--border);
 }
