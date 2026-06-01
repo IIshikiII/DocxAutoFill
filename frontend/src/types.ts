@@ -83,6 +83,21 @@ export interface ArchiveEdit {
   segments: ArchiveSegment[];
 }
 
+/** A saved connection template as summarized by `/api/templates` (Stage 11). */
+export interface ConnectionTemplate {
+  name: string;
+  connectionCount: number;
+}
+
+/** Result of resolving a template against the current canvas nodes. */
+export interface ApplyTemplateResult {
+  connections: WireEdge[];
+  /** How many of the template's connections found matching nodes. */
+  matched: number;
+  /** Total connections stored in the template. */
+  total: number;
+}
+
 /** Node of the archive-preview tree returned by `/archive-model`. */
 export interface ArchiveItem {
   label: string;

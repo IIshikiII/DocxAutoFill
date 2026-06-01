@@ -1,4 +1,5 @@
 import ArchiveModelView from "./ArchiveModelView";
+import SaveTemplateForm from "./SaveTemplateForm";
 import type { ArchiveEditTarget, ArchiveItem } from "../types";
 
 interface ArchivePanelProps {
@@ -6,9 +7,18 @@ interface ArchivePanelProps {
   model: ArchiveItem | null;
   onClose: () => void;
   onEdit: (target: ArchiveEditTarget, template: string) => void;
+  savingTemplate: boolean;
+  onSaveTemplate: (name: string) => Promise<boolean>;
 }
 
-const ArchivePanel = ({ open, model, onClose, onEdit }: ArchivePanelProps) => {
+const ArchivePanel = ({
+  open,
+  model,
+  onClose,
+  onEdit,
+  savingTemplate,
+  onSaveTemplate,
+}: ArchivePanelProps) => {
   const visible = open && model !== null;
 
   return (
@@ -33,6 +43,10 @@ const ArchivePanel = ({ open, model, onClose, onEdit }: ArchivePanelProps) => {
           умолчанию содержит имя макета и редактируется целиком (кроме
           расширения).
         </p>
+      </div>
+
+      <div className="drawer-foot">
+        <SaveTemplateForm busy={savingTemplate} onSave={onSaveTemplate} />
       </div>
     </aside>
   );

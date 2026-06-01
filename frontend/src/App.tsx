@@ -12,8 +12,13 @@ import { useFlowGraph } from "./hooks/useFlowGraph";
 import { useFileUploads } from "./hooks/useFileUploads";
 import { useArchiveModel } from "./hooks/useArchiveModel";
 import { useProcessing } from "./hooks/useProcessing";
-import { importNodes as importNodesApi } from "./api/client";
+import { useTemplates } from "./hooks/useTemplates";
+import {
+  applyTemplate as applyTemplateApi,
+  importNodes as importNodesApi,
+} from "./api/client";
 import { positionImportedNodes } from "./utils/layout";
+import { toGraphPayload } from "./utils/graphPayload";
 import { DEFAULT_ARCHIVE_OPTIONS } from "./utils/archiveOptions";
 import {
   validateGraph,
@@ -34,6 +39,7 @@ const App = () => {
   const { wordFiles, excelFile, addWordFiles, removeWordFile, setExcelFile } =
     useFileUploads();
   const archive = useArchiveModel();
+  const templates = useTemplates();
   const { processing, progress, run } = useProcessing();
   const [importing, setImporting] = useState(false);
   const [dataOpen, setDataOpen] = useState(true);
@@ -165,6 +171,50 @@ const App = () => {
     void run(nodes, edges, excelFile, wordFiles, archiveOptions);
   };
 
+  // Save the current connections as a named template (from the archive drawer).
+  const handleSaveTemplate = (name: string): Promise<boolean> =>
+    templates.save(name, toGraphPayload(nodes, edges));
+
+  // Apply a saved template to the imported nodes: matched connections replace
+  // whatever is on the canvas; unmatched nodes are left unconnected.
+  const handleApplyTemplate = useCallback(
+    async (name: string) => {
+      const wireNodes = nodes.map(({ id, type, data }) => ({
+        id,
+        type: type ?? "",
+        data,
+      }));
+      try {
+        const result = await applyTemplateApi(name, wireNodes);
+        setEdges(
+          result.connections.map((c) => ({
+            id: `e_${c.source}_${c.target}`,
+            source: c.source,
+            target: c.target,
+          }))
+        );
+        clearValidation();
+        const missed = result.total - result.matched;
+        templates.setNotice({
+          kind: missed > 0 ? "warn" : "ok",
+          text:
+            missed > 0
+              ? `Применён «${name}»: восстановлено ${result.matched} из ${result.total} связей (${missed} без совпадений)`
+              : `Применён «${name}»: восстановлено ${result.matched} связей`,
+        });
+      } catch (error) {
+        templates.setNotice({
+          kind: "err",
+          text:
+            error instanceof Error
+              ? error.message
+              : "Не удалось применить шаблон",
+        });
+      }
+    },
+    [nodes, setEdges, clearValidation, templates]
+  );
+
   return (
     <div className="app">
       <TopBar
@@ -212,6 +262,13 @@ const App = () => {
           importing={importing}
           processing={processing}
           onImport={importNodes}
+          templates={templates.items}
+          templatesBusy={templates.busy}
+          templateNotice={templates.notice}
+          canApplyTemplate={nodes.length > 0}
+          onApplyTemplate={handleApplyTemplate}
+          onDeleteTemplate={templates.remove}
+          onDismissTemplateNotice={() => templates.setNotice(null)}
         />
 
         <ArchivePanel
@@ -219,6 +276,8 @@ const App = () => {
           model={archive.archiveModel}
           onClose={archive.hide}
           onEdit={handleArchiveEdit}
+          savingTemplate={templates.busy}
+          onSaveTemplate={handleSaveTemplate}
         />
 
         <ValidationBanner
