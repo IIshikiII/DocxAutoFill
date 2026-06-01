@@ -1,4 +1,5 @@
 import type { GraphValidationError } from "../utils/graphValidation";
+import { useI18n } from "../i18n";
 
 interface Props {
   errors: GraphValidationError[];
@@ -6,6 +7,7 @@ interface Props {
 }
 
 const ValidationBanner = ({ errors, onDismiss }: Props) => {
+  const { t } = useI18n();
   if (errors.length === 0) return null;
 
   return (
@@ -13,17 +15,17 @@ const ValidationBanner = ({ errors, onDismiss }: Props) => {
       <div className="validation-banner-inner">
         <span className="validation-icon" aria-hidden="true">⚠</span>
         <div className="validation-content">
-          <strong className="validation-title">Граф неполный</strong>
+          <strong className="validation-title">{t("validation.title")}</strong>
           <ul className="validation-list">
             {errors.map((e) => (
-              <li key={e.nodeId}>{e.message}</li>
+              <li key={e.nodeId}>{t(e.messageKey, { label: e.label })}</li>
             ))}
           </ul>
         </div>
         <button
           className="icon-btn validation-close"
           onClick={onDismiss}
-          aria-label="Закрыть"
+          aria-label={t("common.close")}
         >
           ×
         </button>

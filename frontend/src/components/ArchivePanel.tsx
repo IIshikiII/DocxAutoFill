@@ -1,6 +1,7 @@
 import ArchiveModelView from "./ArchiveModelView";
 import SaveTemplateForm from "./SaveTemplateForm";
 import type { ArchiveEditTarget, ArchiveItem } from "../types";
+import { useI18n } from "../i18n";
 
 interface ArchivePanelProps {
   open: boolean;
@@ -19,6 +20,7 @@ const ArchivePanel = ({
   savingTemplate,
   onSaveTemplate,
 }: ArchivePanelProps) => {
+  const { t } = useI18n();
   const visible = open && model !== null;
 
   return (
@@ -28,21 +30,16 @@ const ArchivePanel = ({
     >
       <div className="drawer-head">
         <h2 className="drawer-title">
-          <span>🗂️</span> Модель архива
+          <span>🗂️</span> {t("archive.title")}
         </h2>
-        <button className="icon-btn" onClick={onClose} title="Закрыть">
+        <button className="icon-btn" onClick={onClose} title={t("common.close")}>
           ›
         </button>
       </div>
 
       <div className="drawer-body">
         {model && <ArchiveModelView model={model} onEdit={onEdit} />}
-        <p className="hint">
-          Редактируйте имена прямо в дереве. Подсвеченные части (из Excel) и
-          расширение файлов изменить нельзя. Имя объединённого файла по
-          умолчанию содержит имя макета и редактируется целиком (кроме
-          расширения).
-        </p>
+        <p className="hint">{t("archive.hint")}</p>
       </div>
 
       <div className="drawer-foot">

@@ -1,4 +1,6 @@
 import type { AuthUser } from "../types";
+import { useI18n } from "../i18n";
+import LanguageSwitch from "./LanguageSwitch";
 
 interface TopBarProps {
   dataOpen: boolean;
@@ -27,6 +29,7 @@ const TopBar = ({
   onOpenAdmin,
   onLogout,
 }: TopBarProps) => {
+  const { t } = useI18n();
   const busy = importing || processing;
 
   return (
@@ -43,7 +46,7 @@ const TopBar = ({
           aria-pressed={dataOpen}
         >
           <span>📂</span>
-          <span>Файлы</span>
+          <span>{t("topbar.files")}</span>
         </button>
 
         <button
@@ -51,7 +54,11 @@ const TopBar = ({
           onClick={onGenerateModel}
           disabled={busy || !hasNodes || isGeneratingModel}
         >
-          <span>{isGeneratingModel ? "Создание модели…" : "Создать модель архива"}</span>
+          <span>
+            {isGeneratingModel
+              ? t("topbar.generatingModel")
+              : t("topbar.generateModel")}
+          </span>
           {isGeneratingModel && <span className="spinner" />}
         </button>
 
@@ -60,26 +67,27 @@ const TopBar = ({
           onClick={onProcess}
           disabled={busy || !hasNodes}
         >
-          <span>{processing ? "Генерация…" : "Запуск"}</span>
+          <span>{processing ? t("topbar.running") : t("topbar.run")}</span>
           {processing && <span className="spinner light" />}
         </button>
       </div>
 
       <div className="topbar-user">
+        <LanguageSwitch />
         {user.role === "admin" && (
-          <button className="btn ghost" onClick={onOpenAdmin} title="Управление пользователями">
+          <button className="btn ghost" onClick={onOpenAdmin} title={t("topbar.adminTitle")}>
             <span>👑</span>
-            <span>Админ</span>
+            <span>{t("topbar.admin")}</span>
           </button>
         )}
-        <div className="user-chip" title={`Вы вошли как ${user.username}`}>
+        <div className="user-chip" title={t("topbar.loggedInAs", { name: user.username })}>
           <span className="user-avatar">{user.username.charAt(0).toUpperCase()}</span>
           <span className="user-name">{user.username}</span>
           <span className={`role-badge ${user.role}`}>
-            {user.role === "admin" ? "админ" : "польз."}
+            {user.role === "admin" ? t("role.admin") : t("role.userShort")}
           </span>
         </div>
-        <button className="icon-btn" onClick={onLogout} title="Выйти" aria-label="Выйти">
+        <button className="icon-btn" onClick={onLogout} title={t("topbar.logout")} aria-label={t("topbar.logout")}>
           ⎋
         </button>
       </div>

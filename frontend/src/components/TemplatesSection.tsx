@@ -1,5 +1,6 @@
 import type { ConnectionTemplate } from "../types";
 import type { TemplateNotice } from "../hooks/useTemplates";
+import { useI18n } from "../i18n";
 
 interface TemplatesSectionProps {
   items: ConnectionTemplate[];
@@ -23,9 +24,11 @@ const TemplatesSection = ({
   onDelete,
   onDismissNotice,
 }: TemplatesSectionProps) => {
+  const { t } = useI18n();
+
   return (
     <div className="upload-card tpl-section">
-      <h3>🔗 Шаблоны связей</h3>
+      <h3>🔗 {t("templates.title")}</h3>
 
       {notice && (
         <div className={`tpl-notice ${notice.kind}`}>
@@ -33,7 +36,7 @@ const TemplatesSection = ({
           <button
             className="tpl-notice-close"
             onClick={onDismissNotice}
-            aria-label="Скрыть"
+            aria-label={t("common.hide")}
           >
             ×
           </button>
@@ -42,8 +45,7 @@ const TemplatesSection = ({
 
       {items.length === 0 ? (
         <p className="hint" style={{ marginTop: 4 }}>
-          Шаблонов пока нет. Соедините узлы, создайте модель архива и сохраните
-          связи как шаблон — потом его можно будет применить к новому импорту.
+          {t("templates.empty")}
         </p>
       ) : (
         <>
@@ -54,7 +56,9 @@ const TemplatesSection = ({
                   <span className="tpl-name" title={tpl.name}>
                     {tpl.name}
                   </span>
-                  <span className="tpl-count">{tpl.connectionCount} связей</span>
+                  <span className="tpl-count">
+                    {t("templates.connections", { count: tpl.connectionCount })}
+                  </span>
                 </div>
                 <div className="tpl-actions">
                   <button
@@ -63,18 +67,18 @@ const TemplatesSection = ({
                     disabled={busy || !canApply}
                     title={
                       canApply
-                        ? "Расставить связи по шаблону"
-                        : "Сначала импортируйте узлы"
+                        ? t("templates.applyTitle")
+                        : t("templates.applyDisabledTitle")
                     }
                   >
-                    Применить
+                    {t("templates.apply")}
                   </button>
                   <button
                     className="remove-btn"
                     onClick={() => onDelete(tpl.name)}
                     disabled={busy}
-                    title="Удалить шаблон"
-                    aria-label={`Удалить шаблон ${tpl.name}`}
+                    title={t("templates.deleteTitle")}
+                    aria-label={t("templates.deleteAria", { name: tpl.name })}
                   >
                     ✕
                   </button>
@@ -84,7 +88,7 @@ const TemplatesSection = ({
           </ul>
           {!canApply && (
             <p className="hint" style={{ marginTop: 8 }}>
-              Импортируйте узлы, чтобы применить шаблон.
+              {t("templates.importToApply")}
             </p>
           )}
         </>

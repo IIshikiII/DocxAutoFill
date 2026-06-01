@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useI18n } from "../i18n";
 
 interface SaveTemplateFormProps {
   busy: boolean;
@@ -10,6 +11,7 @@ interface SaveTemplateFormProps {
  *  the archive-model drawer, so it only appears once a model has been built —
  *  by then the graph is valid and the connections are worth keeping. */
 const SaveTemplateForm = ({ busy, onSave }: SaveTemplateFormProps) => {
+  const { t } = useI18n();
   const [name, setName] = useState("");
 
   const trimmed = name.trim();
@@ -22,17 +24,16 @@ const SaveTemplateForm = ({ busy, onSave }: SaveTemplateFormProps) => {
 
   return (
     <div className="save-tpl">
-      <h3 className="save-tpl-title">🔗 Сохранить связи как шаблон</h3>
+      <h3 className="save-tpl-title">🔗 {t("saveTpl.title")}</h3>
       <p className="hint" style={{ marginTop: 0, marginBottom: 10 }}>
-        Сохранит текущие соединения под именем. Позже их можно автоматически
-        восстановить после нового импорта (по совпадающим названиям).
+        {t("saveTpl.hint")}
       </p>
       <div className="save-tpl-row">
         <input
           className="save-tpl-input"
           type="text"
           value={name}
-          placeholder="Название шаблона"
+          placeholder={t("saveTpl.placeholder")}
           onChange={(e) => setName(e.target.value)}
           onKeyDown={(e) => {
             if (e.key === "Enter") void submit();
@@ -44,7 +45,7 @@ const SaveTemplateForm = ({ busy, onSave }: SaveTemplateFormProps) => {
           onClick={() => void submit()}
           disabled={busy || trimmed.length === 0}
         >
-          <span>Сохранить</span>
+          <span>{t("common.save")}</span>
           {busy && <span className="spinner light" />}
         </button>
       </div>

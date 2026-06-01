@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import Workspace from "./Workspace";
+import { I18nProvider } from "./i18n";
 import type { AuthUser } from "./types";
 
 vi.mock("./api/client", async (importActual) => {
@@ -13,9 +14,16 @@ vi.mock("./api/client", async (importActual) => {
 
 const USER: AuthUser = { id: 1, username: "tester", role: "user", isActive: true };
 
+const renderWorkspace = (user: AuthUser = USER) =>
+  render(
+    <I18nProvider>
+      <Workspace user={user} onLogout={() => {}} />
+    </I18nProvider>
+  );
+
 describe("Workspace", () => {
   it("renders the action buttons on an empty canvas", () => {
-    render(<Workspace user={USER} onLogout={() => {}} />);
+    renderWorkspace();
     expect(screen.getByRole("button", { name: "Импортировать" })).toBeTruthy();
     expect(
       screen.getByRole("button", { name: "Создать модель архива" })
@@ -24,7 +32,7 @@ describe("Workspace", () => {
   });
 
   it("disables generate/run until nodes are imported", () => {
-    render(<Workspace user={USER} onLogout={() => {}} />);
+    renderWorkspace();
     const run = screen.getByRole("button", { name: "Запуск" });
     const generate = screen.getByRole("button", {
       name: "Создать модель архива",
@@ -34,12 +42,13 @@ describe("Workspace", () => {
   });
 
   it("shows the admin button for admins only", () => {
-    const admin: AuthUser = { ...USER, role: "admin" };
-    const { rerender } = render(
-      <Workspace user={USER} onLogout={() => {}} />
-    );
+    const { rerender } = renderWorkspace(USER);
     expect(screen.queryByRole("button", { name: /Админ/ })).toBeNull();
-    rerender(<Workspace user={admin} onLogout={() => {}} />);
+    rerender(
+      <I18nProvider>
+        <Workspace user={{ ...USER, role: "admin" }} onLogout={() => {}} />
+      </I18nProvider>
+    );
     expect(screen.getByRole("button", { name: /Админ/ })).toBeTruthy();
   });
 });

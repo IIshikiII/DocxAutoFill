@@ -1,4 +1,5 @@
 import { DocIcon, SheetIcon } from "./icons";
+import { useI18n } from "../i18n";
 
 interface FileUploadPanelProps {
   wordFiles: File[];
@@ -15,11 +16,12 @@ const FileUploadPanel = ({
   onRemoveWordFile,
   onSelectExcel,
 }: FileUploadPanelProps) => {
+  const { t } = useI18n();
   return (
     <div className="upload-stack">
       {/* Word files */}
       <div className="upload-card">
-        <h3>Шаблоны Word</h3>
+        <h3>{t("files.wordTitle")}</h3>
         <input
           id="wordInput"
           type="file"
@@ -30,7 +32,7 @@ const FileUploadPanel = ({
         />
         <label htmlFor="wordInput" className="file-upload-btn">
           <DocIcon size={16} />
-          Выбрать файлы
+          {t("files.chooseFiles")}
         </label>
 
         {wordFiles.length > 0 && (
@@ -46,7 +48,7 @@ const FileUploadPanel = ({
                 <button
                   className="remove-btn"
                   onClick={() => onRemoveWordFile(index)}
-                  title="Удалить файл"
+                  title={t("files.removeFile")}
                 >
                   ✕
                 </button>
@@ -58,7 +60,7 @@ const FileUploadPanel = ({
 
       {/* Excel file */}
       <div className="upload-card">
-        <h3>Таблица Excel</h3>
+        <h3>{t("files.excelTitle")}</h3>
         <input
           id="excelInput"
           type="file"
@@ -68,7 +70,7 @@ const FileUploadPanel = ({
         />
         <label htmlFor="excelInput" className="file-upload-btn primary">
           <SheetIcon size={16} />
-          Выбрать Excel
+          {t("files.chooseExcel")}
         </label>
 
         {excelFile && (
@@ -83,7 +85,7 @@ const FileUploadPanel = ({
               <button
                 className="remove-btn"
                 onClick={() => onSelectExcel(null)}
-                title="Удалить файл"
+                title={t("files.removeFile")}
               >
                 ✕
               </button>

@@ -1,15 +1,17 @@
 import type { ProcessProgress } from "../api/client";
+import { useI18n } from "../i18n";
 
 interface ProgressOverlayProps {
   progress: ProcessProgress;
 }
 
 const ProgressOverlay = ({ progress }: ProgressOverlayProps) => {
+  const { t } = useI18n();
   return (
     <div className="overlay">
       <div className="progress-card">
         <div className="progress-spark">⚡</div>
-        <h3 className="progress-title">Генерация документов</h3>
+        <h3 className="progress-title">{t("progress.title")}</h3>
         <div
           className="progress-bar"
           role="progressbar"

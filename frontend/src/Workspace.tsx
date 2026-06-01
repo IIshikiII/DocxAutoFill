@@ -25,6 +25,7 @@ import {
   validateGraph,
   type GraphValidationError,
 } from "./utils/graphValidation";
+import { useI18n } from "./i18n";
 import type {
   ArchiveEditTarget,
   ArchiveOptions,
@@ -40,6 +41,7 @@ interface WorkspaceProps {
 /** The authenticated application: canvas, panels and per-user templates.
  *  Mounted with a `key` of the user id, so switching accounts starts fresh. */
 const Workspace = ({ user, onLogout }: WorkspaceProps) => {
+  const { t } = useI18n();
   const {
     nodes,
     edges,
@@ -143,11 +145,11 @@ const Workspace = ({ user, onLogout }: WorkspaceProps) => {
 
   const requireFiles = () => {
     if (!excelFile) {
-      alert("Пожалуйста, прикрепите файл Excel");
+      alert(t("ws.attachExcel"));
       return false;
     }
     if (wordFiles.length === 0) {
-      alert("Пожалуйста, прикрепите хотя бы один файл Word");
+      alert(t("ws.attachWord"));
       return false;
     }
     return true;
@@ -164,7 +166,7 @@ const Workspace = ({ user, onLogout }: WorkspaceProps) => {
       setEdges([]);
     } catch (error) {
       console.error("Error importing nodes:", error);
-      alert(error instanceof Error ? error.message : "Ошибка при импорте узлов");
+      alert(error instanceof Error ? error.message : t("ws.importFailed"));
     } finally {
       setImporting(false);
     }
@@ -204,18 +206,23 @@ const Workspace = ({ user, onLogout }: WorkspaceProps) => {
           kind: missed > 0 ? "warn" : "ok",
           text:
             missed > 0
-              ? `Применён «${name}»: восстановлено ${result.matched} из ${result.total} связей (${missed} без совпадений)`
-              : `Применён «${name}»: восстановлено ${result.matched} связей`,
+              ? t("ws.applyPartial", {
+                  name,
+                  matched: result.matched,
+                  total: result.total,
+                  missed,
+                })
+              : t("ws.applyOk", { name, matched: result.matched }),
         });
       } catch (error) {
         templates.setNotice({
           kind: "err",
           text:
-            error instanceof Error ? error.message : "Не удалось применить шаблон",
+            error instanceof Error ? error.message : t("ws.applyFailed"),
         });
       }
     },
-    [nodes, setEdges, clearValidation, templates]
+    [nodes, setEdges, clearValidation, templates, t]
   );
 
   return (
@@ -249,10 +256,7 @@ const Workspace = ({ user, onLogout }: WorkspaceProps) => {
           <div className="canvas-hint">
             <div className="canvas-hint-card">
               <div className="canvas-hint-icon">🎯</div>
-              <p>
-                Откройте «Файлы», загрузите таблицу и шаблоны, затем нажмите
-                «Импортировать».
-              </p>
+              <p>{t("ws.canvasHint")}</p>
             </div>
           </div>
         )}
