@@ -3,7 +3,8 @@ import type { FlowEdge, FlowNode } from "../types";
 export interface GraphValidationError {
   nodeId: string;
   label: string;
-  message: string;
+  /** i18n key resolved by the view; interpolate `{label}` where present. */
+  messageKey: string;
 }
 
 /** Returns validation errors for the current graph state.
@@ -22,21 +23,21 @@ export function validateGraph(
       errors.push({
         nodeId: node.id,
         label: node.data.label,
-        message: `Переменная «${node.data.label}» не подключена к источнику данных`,
+        messageKey: "validation.varNotConnected",
       });
     }
     if (node.type === "violet" && !connectedTargets.has(node.id)) {
       errors.push({
         nodeId: node.id,
         label: node.data.label,
-        message: `Шаблон «${node.data.label}» не подключён к источнику данных (имя файла)`,
+        messageKey: "validation.templateNotConnected",
       });
     }
     if (node.type === "orange" && !connectedTargets.has(node.id)) {
       errors.push({
         nodeId: node.id,
         label: node.data.label,
-        message: `Поле разбивки по папкам не подключено к источнику данных`,
+        messageKey: "validation.foldersNotConnected",
       });
     }
   }

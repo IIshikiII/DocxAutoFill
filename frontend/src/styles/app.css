@@ -1025,6 +1025,44 @@
   align-items: center;
   gap: 10px;
 }
+
+/* Language switch (RU/EN segmented control) */
+.lang-switch {
+  display: inline-flex;
+  gap: 2px;
+  padding: 2px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.6);
+}
+.lang-option {
+  border: none;
+  background: transparent;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: var(--muted);
+  cursor: pointer;
+  transition:
+    background 0.15s,
+    color 0.15s;
+}
+.lang-option:hover:not(.active) {
+  color: var(--text);
+}
+.lang-option.active {
+  background: var(--accent-grad);
+  color: #fff;
+}
+.login-lang {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  z-index: 2;
+}
 .user-chip {
   display: flex;
   align-items: center;

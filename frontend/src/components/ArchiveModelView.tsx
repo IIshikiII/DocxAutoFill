@@ -12,6 +12,7 @@ import {
   setTextSegment,
   templateFromSegments,
 } from "../utils/archiveSegments";
+import { useI18n } from "../i18n";
 
 interface ArchiveModelViewProps {
   model: ArchiveItem;
@@ -80,7 +81,9 @@ const SegmentedName = ({
 }: {
   edit: ArchiveEdit;
   onText: (target: ArchiveEditTarget, index: number, value: string) => void;
-}) => (
+}) => {
+  const { t } = useI18n();
+  return (
   <span className="seg-editor">
     {edit.segments.map((seg, i) => {
       if (seg.kind === "text") {
@@ -102,7 +105,7 @@ const SegmentedName = ({
           <span
             key={i}
             className="seg-chip seg-lock"
-            title="Подставляется из Excel — менять нельзя"
+            title={t("archiveView.lockTitle")}
           >
             {seg.value}
           </span>
@@ -112,14 +115,15 @@ const SegmentedName = ({
         <span
           key={i}
           className="seg-chip seg-ext"
-          title="Расширение зафиксировано"
+          title={t("archiveView.extTitle")}
         >
           {seg.value}
         </span>
       );
     })}
   </span>
-);
+  );
+};
 
 const ArchiveModelView = ({ model, onEdit }: ArchiveModelViewProps) => {
   const [tree, setTree] = useState<ArchiveItem>(model);

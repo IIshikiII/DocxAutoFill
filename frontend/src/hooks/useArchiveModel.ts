@@ -2,9 +2,11 @@ import { useCallback, useState } from "react";
 import { getArchiveModel } from "../api/client";
 import type { ArchiveItem, ArchiveOptions, FlowEdge, FlowNode } from "../types";
 import { toGraphPayload } from "../utils/graphPayload";
+import { useI18n } from "../i18n";
 
 /** Archive-preview state plus the request that builds it from the current graph. */
 export function useArchiveModel() {
+  const { t } = useI18n();
   const [archiveModel, setArchiveModel] = useState<ArchiveItem | null>(null);
   const [visible, setVisible] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -15,9 +17,7 @@ export function useArchiveModel() {
       try {
         const orangeNode = nodes.find((n) => n.type === "orange");
         if (!orangeNode) {
-          alert(
-            'Не найден оранжевый узел ("разбивать на папки"). Пожалуйста, добавьте оранжевый узел.'
-          );
+          alert(t("archiveModel.noOrange"));
           return;
         }
 
@@ -32,9 +32,7 @@ export function useArchiveModel() {
         });
 
         if (!hasGreenLink) {
-          alert(
-            'Нужно соединение хотя бы одного зелёного узла с оранжевым узлом "разбивать на папки"'
-          );
+          alert(t("archiveModel.needGreenOrange"));
           return;
         }
 
@@ -48,13 +46,13 @@ export function useArchiveModel() {
         alert(
           error instanceof Error
             ? error.message
-            : "Ошибка при создании модели архива"
+            : t("archiveModel.buildFailed")
         );
       } finally {
         setLoading(false);
       }
     },
-    []
+    [t]
   );
 
   const hide = useCallback(() => setVisible(false), []);

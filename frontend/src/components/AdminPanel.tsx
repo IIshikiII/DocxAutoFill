@@ -5,6 +5,7 @@ import {
   listUserTemplates,
 } from "../api/client";
 import type { AdminTemplate, AdminUser } from "../types";
+import { useI18n } from "../i18n";
 
 interface AdminPanelProps {
   open: boolean;
@@ -15,6 +16,7 @@ interface AdminPanelProps {
 /** Admin-only modal: create users, reset passwords, delete users and inspect
  *  (and prune) each user's saved connection templates (Stage 12). */
 const AdminPanel = ({ open, onClose, currentUserId }: AdminPanelProps) => {
+  const { t } = useI18n();
   const admin = useAdmin(open);
   const [newUser, setNewUser] = useState("");
   const [newPass, setNewPass] = useState("");
@@ -68,20 +70,20 @@ const AdminPanel = ({ open, onClose, currentUserId }: AdminPanelProps) => {
       <div className="admin-modal">
         <div className="admin-head">
           <h2 className="drawer-title">
-            <span>👑</span> Управление пользователями
+            <span>👑</span> {t("topbar.adminTitle")}
           </h2>
-          <button className="icon-btn" onClick={onClose} title="Закрыть">
+          <button className="icon-btn" onClick={onClose} title={t("common.close")}>
             ×
           </button>
         </div>
 
         <div className="admin-body">
           <form className="admin-create" onSubmit={submitCreate}>
-            <h3 className="admin-section-title">Новый пользователь</h3>
+            <h3 className="admin-section-title">{t("admin.newUser")}</h3>
             <div className="admin-create-row">
               <input
                 className="admin-input"
-                placeholder="Логин"
+                placeholder={t("admin.login")}
                 value={newUser}
                 onChange={(e) => setNewUser(e.target.value)}
                 disabled={admin.busy}
@@ -89,7 +91,7 @@ const AdminPanel = ({ open, onClose, currentUserId }: AdminPanelProps) => {
               <input
                 className="admin-input"
                 type="password"
-                placeholder="Пароль (мин. 8)"
+                placeholder={t("admin.password8")}
                 value={newPass}
                 onChange={(e) => setNewPass(e.target.value)}
                 disabled={admin.busy}
@@ -98,7 +100,7 @@ const AdminPanel = ({ open, onClose, currentUserId }: AdminPanelProps) => {
                 className="btn primary"
                 disabled={admin.busy || !newUser.trim() || newPass.length === 0}
               >
-                Создать
+                {t("admin.create")}
               </button>
             </div>
           </form>
@@ -109,16 +111,16 @@ const AdminPanel = ({ open, onClose, currentUserId }: AdminPanelProps) => {
               <button
                 className="tpl-notice-close"
                 onClick={() => admin.setNotice(null)}
-                aria-label="Скрыть"
+                aria-label={t("common.hide")}
               >
                 ×
               </button>
             </div>
           )}
 
-          <h3 className="admin-section-title">Пользователи</h3>
+          <h3 className="admin-section-title">{t("admin.users")}</h3>
           {admin.loading ? (
-            <p className="hint">Загрузка…</p>
+            <p className="hint">{t("common.loading")}</p>
           ) : (
             <ul className="admin-user-list">
               {admin.users.map((user) => {
@@ -129,16 +131,16 @@ const AdminPanel = ({ open, onClose, currentUserId }: AdminPanelProps) => {
                       <div className="admin-user-meta">
                         <span className="admin-user-name">{user.username}</span>
                         <span className={`role-badge ${user.role}`}>
-                          {user.role === "admin" ? "админ" : "пользователь"}
+                          {user.role === "admin" ? t("role.admin") : t("role.user")}
                         </span>
-                        {isSelf && <span className="admin-self">это вы</span>}
+                        {isSelf && <span className="admin-self">{t("admin.you")}</span>}
                       </div>
                       <div className="admin-user-actions">
                         <button
                           className="btn tpl-apply"
                           onClick={() => toggleTemplates(user)}
                         >
-                          Шаблоны ({user.templateCount})
+                          {t("admin.templatesBtn", { count: user.templateCount })}
                         </button>
                         <button
                           className="btn"
@@ -148,23 +150,23 @@ const AdminPanel = ({ open, onClose, currentUserId }: AdminPanelProps) => {
                           }}
                           disabled={admin.busy}
                         >
-                          Пароль
+                          {t("admin.passwordBtn")}
                         </button>
                         <button
                           className="btn danger"
                           onClick={() => {
                             if (
                               window.confirm(
-                                `Удалить пользователя «${user.username}» и все его шаблоны?`
+                                t("admin.confirmDelete", { name: user.username })
                               )
                             ) {
                               void admin.remove(user);
                             }
                           }}
                           disabled={admin.busy || isSelf}
-                          title={isSelf ? "Нельзя удалить себя" : "Удалить пользователя"}
+                          title={isSelf ? t("admin.cantDeleteSelf") : t("admin.deleteUserTitle")}
                         >
-                          Удалить
+                          {t("admin.deleteBtn")}
                         </button>
                       </div>
                     </div>
@@ -174,7 +176,7 @@ const AdminPanel = ({ open, onClose, currentUserId }: AdminPanelProps) => {
                         <input
                           className="admin-input"
                           type="password"
-                          placeholder="Новый пароль (мин. 8)"
+                          placeholder={t("admin.newPassword8")}
                           value={resetPass}
                           onChange={(e) => setResetPass(e.target.value)}
                           disabled={admin.busy}
@@ -184,7 +186,7 @@ const AdminPanel = ({ open, onClose, currentUserId }: AdminPanelProps) => {
                           onClick={() => void submitReset(user)}
                           disabled={admin.busy || resetPass.length === 0}
                         >
-                          Сменить
+                          {t("admin.changeBtn")}
                         </button>
                       </div>
                     )}
@@ -192,23 +194,25 @@ const AdminPanel = ({ open, onClose, currentUserId }: AdminPanelProps) => {
                     {expanded === user.id && (
                       <div className="admin-templates">
                         {!(user.id in templates) ? (
-                          <p className="hint">Загрузка…</p>
+                          <p className="hint">{t("common.loading")}</p>
                         ) : templates[user.id].length === 0 ? (
-                          <p className="hint">Нет сохранённых шаблонов.</p>
+                          <p className="hint">{t("admin.noTemplates")}</p>
                         ) : (
                           <ul className="tpl-list">
-                            {templates[user.id].map((t) => (
-                              <li key={t.id} className="tpl-item">
+                            {templates[user.id].map((tpl) => (
+                              <li key={tpl.id} className="tpl-item">
                                 <div className="tpl-meta">
-                                  <span className="tpl-name">{t.name}</span>
+                                  <span className="tpl-name">{tpl.name}</span>
                                   <span className="tpl-count">
-                                    {t.connectionCount} связей
+                                    {t("templates.connections", {
+                                      count: tpl.connectionCount,
+                                    })}
                                   </span>
                                 </div>
                                 <button
                                   className="remove-btn"
-                                  onClick={() => void removeTemplate(user, t)}
-                                  title="Удалить шаблон"
+                                  onClick={() => void removeTemplate(user, tpl)}
+                                  title={t("templates.deleteTitle")}
                                 >
                                   ✕
                                 </button>

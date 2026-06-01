@@ -5,6 +5,7 @@ import {
   saveTemplate,
 } from "../api/client";
 import type { ConnectionTemplate, GraphPayload } from "../types";
+import { useI18n } from "../i18n";
 
 /** A transient status message shown next to the templates list. */
 export interface TemplateNotice {
@@ -15,6 +16,7 @@ export interface TemplateNotice {
 /** Connection-template library state: list, save and delete (Stage 11).
  *  Applying a template lives in the App because it mutates the canvas edges. */
 export function useTemplates() {
+  const { t } = useI18n();
   const [items, setItems] = useState<ConnectionTemplate[]>([]);
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState<TemplateNotice | null>(null);
@@ -39,21 +41,24 @@ export function useTemplates() {
         await refresh();
         setNotice({
           kind: "ok",
-          text: `Шаблон «${saved.name}» сохранён (${saved.connectionCount} связей)`,
+          text: t("templates.saved", {
+            name: saved.name,
+            count: saved.connectionCount,
+          }),
         });
         return true;
       } catch (error) {
         setNotice({
           kind: "err",
           text:
-            error instanceof Error ? error.message : "Не удалось сохранить шаблон",
+            error instanceof Error ? error.message : t("templates.saveFailed"),
         });
         return false;
       } finally {
         setBusy(false);
       }
     },
-    [refresh]
+    [refresh, t]
   );
 
   const remove = useCallback(
@@ -62,18 +67,18 @@ export function useTemplates() {
       try {
         await deleteTemplate(name);
         await refresh();
-        setNotice({ kind: "ok", text: `Шаблон «${name}» удалён` });
+        setNotice({ kind: "ok", text: t("templates.deleted", { name }) });
       } catch (error) {
         setNotice({
           kind: "err",
           text:
-            error instanceof Error ? error.message : "Не удалось удалить шаблон",
+            error instanceof Error ? error.message : t("templates.deleteFailed"),
         });
       } finally {
         setBusy(false);
       }
     },
-    [refresh]
+    [refresh, t]
   );
 
   return { items, busy, notice, setNotice, refresh, save, remove };

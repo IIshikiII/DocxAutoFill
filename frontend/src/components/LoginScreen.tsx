@@ -1,4 +1,6 @@
 import { useState } from "react";
+import LanguageSwitch from "./LanguageSwitch";
+import { useI18n } from "../i18n";
 
 interface LoginScreenProps {
   onLogin: (username: string, password: string) => Promise<void>;
@@ -6,6 +8,7 @@ interface LoginScreenProps {
 
 /** Full-screen, branded sign-in form shown when no session is active. */
 const LoginScreen = ({ onLogin }: LoginScreenProps) => {
+  const { t } = useI18n();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -21,7 +24,7 @@ const LoginScreen = ({ onLogin }: LoginScreenProps) => {
     try {
       await onLogin(username.trim(), password);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Не удалось войти");
+      setError(err instanceof Error ? err.message : t("login.failed"));
       setBusy(false);
     }
   };
@@ -29,34 +32,37 @@ const LoginScreen = ({ onLogin }: LoginScreenProps) => {
   return (
     <div className="login-screen">
       <div className="login-aurora" aria-hidden="true" />
+      <div className="login-lang">
+        <LanguageSwitch />
+      </div>
       <form className="login-card" onSubmit={submit}>
         <div className="login-brand">
           <span className="login-logo">📄</span>
           <span className="login-title">DocxAutoFill</span>
         </div>
-        <p className="login-subtitle">Войдите, чтобы продолжить</p>
+        <p className="login-subtitle">{t("login.subtitle")}</p>
 
         <label className="login-field">
-          <span>Логин</span>
+          <span>{t("login.username")}</span>
           <input
             type="text"
             autoComplete="username"
             value={username}
             onChange={(e) => setUsername(e.target.value)}
-            placeholder="Ваш логин"
+            placeholder={t("login.usernamePh")}
             autoFocus
             disabled={busy}
           />
         </label>
 
         <label className="login-field">
-          <span>Пароль</span>
+          <span>{t("login.password")}</span>
           <input
             type="password"
             autoComplete="current-password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            placeholder="Ваш пароль"
+            placeholder={t("login.passwordPh")}
             disabled={busy}
           />
         </label>
@@ -64,7 +70,7 @@ const LoginScreen = ({ onLogin }: LoginScreenProps) => {
         {error && <div className="login-error">{error}</div>}
 
         <button className="btn primary block login-submit" disabled={!canSubmit}>
-          <span>{busy ? "Вход…" : "Войти"}</span>
+          <span>{busy ? t("login.submitting") : t("login.submit")}</span>
           {busy && <span className="spinner light" />}
         </button>
       </form>

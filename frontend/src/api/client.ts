@@ -1,4 +1,5 @@
 import { API_BASE_URL } from "../config";
+import { translate } from "../i18n";
 import type {
   AdminTemplate,
   AdminUser,
@@ -38,7 +39,7 @@ async function errorDetail(res: Response): Promise<string> {
   } catch {
     // not JSON — fall through to status text
   }
-  return `Ошибка сервера (${res.status})`;
+  return translate("client.serverError", { status: res.status });
 }
 
 function appendFiles(form: FormData, excel: File, words: File[]): void {
@@ -246,7 +247,7 @@ export async function processGraphStream(
   }
 
   if (failure) throw new Error(failure);
-  if (!result) throw new Error("Сервер не вернул архив");
+  if (!result) throw new Error(translate("client.noArchive"));
   return result;
 }
 

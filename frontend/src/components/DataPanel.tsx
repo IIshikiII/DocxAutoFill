@@ -1,5 +1,6 @@
 import FileUploadPanel from "./FileUploadPanel";
 import TemplatesSection from "./TemplatesSection";
+import { useI18n } from "../i18n";
 import type { ConnectionTemplate } from "../types";
 import type { TemplateNotice } from "../hooks/useTemplates";
 
@@ -42,13 +43,14 @@ const DataPanel = ({
   onDeleteTemplate,
   onDismissTemplateNotice,
 }: DataPanelProps) => {
+  const { t } = useI18n();
   return (
     <aside className={`drawer left ${open ? "" : "closed"}`} aria-hidden={!open}>
       <div className="drawer-head">
         <h2 className="drawer-title">
-          <span>📂</span> Данные
+          <span>📂</span> {t("data.title")}
         </h2>
-        <button className="icon-btn" onClick={onClose} title="Свернуть панель">
+        <button className="icon-btn" onClick={onClose} title={t("data.collapse")}>
           ‹
         </button>
       </div>
@@ -79,12 +81,10 @@ const DataPanel = ({
           onClick={onImport}
           disabled={importing || processing}
         >
-          <span>{importing ? "Импортирование…" : "Импортировать"}</span>
+          <span>{importing ? t("data.importing") : t("data.import")}</span>
           {importing && <span className="spinner light" />}
         </button>
-        <p className="hint">
-          Загрузите таблицу и шаблоны, затем импортируйте узлы на холст.
-        </p>
+        <p className="hint">{t("data.hint")}</p>
       </div>
     </aside>
   );
