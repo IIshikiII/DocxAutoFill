@@ -1,5 +1,12 @@
 import { API_BASE_URL } from "../config";
-import type { ArchiveItem, GraphPayload, ImportResponse } from "../types";
+import type {
+  ApplyTemplateResult,
+  ArchiveItem,
+  ConnectionTemplate,
+  GraphPayload,
+  ImportResponse,
+  WireNode,
+} from "../types";
 
 /** Extract a human-readable error message from a failed response. */
 async function errorDetail(res: Response): Promise<string> {
@@ -50,6 +57,63 @@ export async function getArchiveModel(
     throw new Error(await errorDetail(res));
   }
   return (await res.json()) as ArchiveItem;
+}
+
+/** List saved connection templates (Stage 11). */
+export async function listTemplates(): Promise<ConnectionTemplate[]> {
+  const res = await fetch(`${API_BASE_URL}/api/templates`);
+  if (!res.ok) {
+    throw new Error(await errorDetail(res));
+  }
+  const body = (await res.json()) as {
+    templates: { name: string; connection_count: number }[];
+  };
+  return body.templates.map((t) => ({
+    name: t.name,
+    connectionCount: t.connection_count,
+  }));
+}
+
+/** Save the current graph's connections as a named template. */
+export async function saveTemplate(
+  name: string,
+  graph: GraphPayload
+): Promise<ConnectionTemplate> {
+  const res = await fetch(`${API_BASE_URL}/api/templates`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ name, graph }),
+  });
+  if (!res.ok) {
+    throw new Error(await errorDetail(res));
+  }
+  const body = (await res.json()) as { name: string; connection_count: number };
+  return { name: body.name, connectionCount: body.connection_count };
+}
+
+/** Resolve a saved template against the current nodes into concrete edges. */
+export async function applyTemplate(
+  name: string,
+  nodes: WireNode[]
+): Promise<ApplyTemplateResult> {
+  const res = await fetch(`${API_BASE_URL}/api/templates/apply`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ name, nodes }),
+  });
+  if (!res.ok) {
+    throw new Error(await errorDetail(res));
+  }
+  return (await res.json()) as ApplyTemplateResult;
+}
+
+/** Delete a saved template by name. */
+export async function deleteTemplate(name: string): Promise<void> {
+  const url = `${API_BASE_URL}/api/templates?name=${encodeURIComponent(name)}`;
+  const res = await fetch(url, { method: "DELETE" });
+  if (!res.ok) {
+    throw new Error(await errorDetail(res));
+  }
 }
 
 /** Run generation and get the resulting archive as a Blob (non-streaming). */

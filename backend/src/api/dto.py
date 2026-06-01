@@ -48,3 +48,43 @@ class ImportResponse(BaseModel):
     status: str
     received: dict
     nodes: list[NodeDTO]
+
+
+class TemplateTargetDTO(BaseModel):
+    """Signature of a connection's target node within a template."""
+
+    type: str
+    label: str | None = None
+    category: str | None = None
+
+
+class TemplateConnectionDTO(BaseModel):
+    """A single connection captured by node signature (green source → target)."""
+
+    source_label: str
+    target: TemplateTargetDTO
+
+
+class SaveTemplateRequest(BaseModel):
+    """Save the current graph's connections as a named template (Stage 11)."""
+
+    name: str
+    graph: GraphRequest
+
+
+class TemplateSummary(BaseModel):
+    name: str
+    connection_count: int
+
+
+class ApplyTemplateRequest(BaseModel):
+    """Resolve a saved template against the current canvas nodes."""
+
+    name: str
+    nodes: list[NodeDTO] = Field(default_factory=list)
+
+
+class ApplyTemplateResponse(BaseModel):
+    connections: list[EdgeDTO] = Field(default_factory=list)
+    matched: int
+    total: int

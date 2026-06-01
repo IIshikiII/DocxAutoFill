@@ -1,4 +1,7 @@
 import FileUploadPanel from "./FileUploadPanel";
+import TemplatesSection from "./TemplatesSection";
+import type { ConnectionTemplate } from "../types";
+import type { TemplateNotice } from "../hooks/useTemplates";
 
 interface DataPanelProps {
   open: boolean;
@@ -11,6 +14,13 @@ interface DataPanelProps {
   importing: boolean;
   processing: boolean;
   onImport: () => void;
+  templates: ConnectionTemplate[];
+  templatesBusy: boolean;
+  templateNotice: TemplateNotice | null;
+  canApplyTemplate: boolean;
+  onApplyTemplate: (name: string) => void;
+  onDeleteTemplate: (name: string) => void;
+  onDismissTemplateNotice: () => void;
 }
 
 const DataPanel = ({
@@ -24,6 +34,13 @@ const DataPanel = ({
   importing,
   processing,
   onImport,
+  templates,
+  templatesBusy,
+  templateNotice,
+  canApplyTemplate,
+  onApplyTemplate,
+  onDeleteTemplate,
+  onDismissTemplateNotice,
 }: DataPanelProps) => {
   return (
     <aside className={`drawer left ${open ? "" : "closed"}`} aria-hidden={!open}>
@@ -43,6 +60,16 @@ const DataPanel = ({
           onAddWordFiles={onAddWordFiles}
           onRemoveWordFile={onRemoveWordFile}
           onSelectExcel={onSelectExcel}
+        />
+
+        <TemplatesSection
+          items={templates}
+          busy={templatesBusy}
+          notice={templateNotice}
+          canApply={canApplyTemplate}
+          onApply={onApplyTemplate}
+          onDelete={onDeleteTemplate}
+          onDismissNotice={onDismissTemplateNotice}
         />
       </div>
 
