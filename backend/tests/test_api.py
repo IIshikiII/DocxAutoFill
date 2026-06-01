@@ -197,10 +197,18 @@ def test_process_stream_emits_progress_then_archive(auth_client, upload_files):
     assert "progress" in kinds
     assert kinds[-1] == "done"
 
-    # Progress percentages are monotonic and bounded.
-    percents = [e[1]["percent"] for e in events if e[0] == "progress"]
-    assert percents == sorted(percents)
-    assert max(percents) <= 100
+    # Both phases are reported; the merge phase gets its own bar.
+    from itertools import groupby
+
+    prog = [e[1] for e in events if e[0] == "progress"]
+    assert {p["phase"] for p in prog} == {"fill", "merge"}
+    assert max(p["percent"] for p in prog) <= 100
+
+    # Percentages are monotonic within each phase / per-template merge (the
+    # bar resets between phases and between merges).
+    for _, group in groupby(prog, key=lambda p: (p["phase"], p.get("label", ""))):
+        percents = [p["percent"] for p in group]
+        assert percents == sorted(percents)
 
     # The final event carries a valid base64 zip.
     payload = events[-1][1]

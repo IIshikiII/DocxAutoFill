@@ -81,6 +81,8 @@ const ru: Dict = {
 
   "progress.title": "Генерация документов",
   "progress.preparing": "Подготовка…",
+  "progress.phaseFill": "Заполнение шаблонов",
+  "progress.phaseMerge": "Объединение в один файл",
 
   "login.subtitle": "Войдите, чтобы продолжить",
   "login.username": "Логин",
@@ -205,6 +207,8 @@ const en: Dict = {
 
   "progress.title": "Generating documents",
   "progress.preparing": "Preparing…",
+  "progress.phaseFill": "Filling templates",
+  "progress.phaseMerge": "Merging into one file",
 
   "login.subtitle": "Sign in to continue",
   "login.username": "Username",
