@@ -1,3 +1,5 @@
+import { DocIcon, SheetIcon } from "./icons";
+
 interface FileUploadPanelProps {
   wordFiles: File[];
   excelFile: File | null;
@@ -27,7 +29,8 @@ const FileUploadPanel = ({
           style={{ display: "none" }}
         />
         <label htmlFor="wordInput" className="file-upload-btn">
-          📎 Выбрать файлы
+          <DocIcon size={16} />
+          Выбрать файлы
         </label>
 
         {wordFiles.length > 0 && (
@@ -35,7 +38,9 @@ const FileUploadPanel = ({
             {wordFiles.map((file, index) => (
               <div key={index} className="file-item">
                 <div className="file-meta">
-                  <div className="file-icon">📄</div>
+                  <div className="file-icon">
+                    <DocIcon size={18} />
+                  </div>
                   <div className="file-name">{file.name}</div>
                 </div>
                 <button
@@ -62,14 +67,17 @@ const FileUploadPanel = ({
           style={{ display: "none" }}
         />
         <label htmlFor="excelInput" className="file-upload-btn primary">
-          📊 Выбрать Excel
+          <SheetIcon size={16} />
+          Выбрать Excel
         </label>
 
         {excelFile && (
           <div className="file-list">
             <div className="file-item">
               <div className="file-meta">
-                <div className="file-icon">📈</div>
+                <div className="file-icon">
+                  <SheetIcon size={18} />
+                </div>
                 <div className="file-name">{excelFile.name}</div>
               </div>
               <button
