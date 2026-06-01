@@ -1,1 +1,7 @@
 node_modules/
+dist/
+# Never bake secrets into the image.
+.env
+.env.*
+!.env.example
+**/.env

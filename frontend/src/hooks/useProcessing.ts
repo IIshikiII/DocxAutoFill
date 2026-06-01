@@ -31,7 +31,13 @@ export function useProcessing() {
       options: ArchiveOptions
     ) => {
       setProcessing(true);
-      setProgress({ done: 0, total: 1, percent: 0, message: t("progress.preparing") });
+      setProgress({
+        done: 0,
+        total: 1,
+        percent: 0,
+        message: t("progress.preparing"),
+        phase: "fill",
+      });
       try {
         const blob = await processGraphStream(
           toGraphPayload(nodes, edges, options),

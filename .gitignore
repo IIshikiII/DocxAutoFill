@@ -38,3 +38,5 @@ dist/
 
 # Local SQLite database (Stage 12)
 backend/src/data/
+# Local deployment config (secrets / host)
+deploy/deploy.env

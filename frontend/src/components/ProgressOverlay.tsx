@@ -12,6 +12,9 @@ const ProgressOverlay = ({ progress }: ProgressOverlayProps) => {
       <div className="progress-card">
         <div className="progress-spark">⚡</div>
         <h3 className="progress-title">{t("progress.title")}</h3>
+        <div className={`progress-phase progress-phase--${progress.phase}`}>
+          {t(progress.phase === "merge" ? "progress.phaseMerge" : "progress.phaseFill")}
+        </div>
         <div
           className="progress-bar"
           role="progressbar"

@@ -170,6 +170,10 @@ export interface ProcessProgress {
   total: number;
   percent: number;
   message: string;
+  /** "fill" while rendering templates, "merge" while combining them. */
+  phase: "fill" | "merge";
+  /** Template being merged (merge phase only). */
+  label?: string;
 }
 
 function decodeBase64Zip(data: string): Blob {

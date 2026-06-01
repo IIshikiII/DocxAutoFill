@@ -454,9 +454,24 @@
   }
 }
 .progress-title {
-  margin: 8px 0 18px;
+  margin: 8px 0 10px;
   font-size: 18px;
   font-weight: 700;
+}
+.progress-phase {
+  display: inline-block;
+  margin: 0 0 14px;
+  padding: 3px 12px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--accent);
+  background: #eef2ff;
+}
+.progress-phase--merge {
+  color: #fff;
+  background: var(--accent-grad);
 }
 .progress-bar {
   height: 10px;

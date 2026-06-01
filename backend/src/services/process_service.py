@@ -8,6 +8,7 @@ events followed by a single result event, so the API layer can stream progress
 for long jobs (Stage 10). :func:`run_process` is a thin non-streaming wrapper.
 """
 
+import gc
 import io
 import logging
 import shutil
@@ -30,11 +31,19 @@ logger = logging.getLogger(__name__)
 
 @dataclass
 class ProcessProgress:
-    """A progress tick emitted while documents are generated."""
+    """A progress tick emitted while documents are generated.
+
+    ``phase`` is ``"fill"`` while templates are rendered (a single bar across
+    all rows) or ``"merge"`` while one template's copies are concatenated (a
+    fresh bar per template). ``done``/``total`` are phase-local, so the bar
+    resets at the start of the merge phase and of each per-template merge.
+    """
 
     done: int
     total: int
     message: str
+    phase: str = "fill"
+    label: str = ""
 
 
 @dataclass
@@ -103,17 +112,30 @@ def _fill_template(
     return out_path
 
 
-def _merge_template(files: list[Path], merged_dir: Path, out_name: str) -> None:
-    """Concatenate every rendered copy of one template into a single document."""
+def _merge_template_iter(files: list[Path], merged_dir: Path, out_name: str) -> Iterator[int]:
+    """Concatenate every rendered copy of one template into a single document.
+
+    Yields the number of source documents merged so far (1-based) after each
+    one, so the caller can drive a per-template merge progress bar. Each source
+    is released right after it is appended and the garbage collector is nudged
+    periodically, keeping peak memory close to the growing master plus one
+    source rather than the whole batch.
+    """
     paths = [p for p in sorted(files, key=str) if p.exists()]
     if not paths:
         return
 
     master = Document(str(paths[0]))
     composer = Composer(master)
-    for f in paths[1:]:
+    yield 1
+    for i, f in enumerate(paths[1:], start=2):
         composer.append(Document(str(f)))
+        if i % 50 == 0:
+            gc.collect()
+        yield i
     composer.save(str(merged_dir / out_name))
+    del composer, master
+    gc.collect()
 
 
 def iter_process(
@@ -151,9 +173,11 @@ def iter_process(
         plans.append((file_name, mapping, _build_context_map(graph, file_name)))
 
     rows = len(df)
-    total = max(len(file_names) * rows + len(file_names), 1)
-    done = 0
-    yield ProcessProgress(done, total, "Подготовка…")
+
+    # Phase 1 — fill: a single progress bar across every template × row.
+    fill_total = max(len(plans) * rows, 1)
+    filled = 0
+    yield ProcessProgress(0, fill_total, "Подготовка…", phase="fill")
 
     rendered: dict[str, list[Path]] = {name: [] for name, _, _ in plans}
     for file_name, mapping, context_map in plans:
@@ -167,9 +191,12 @@ def iter_process(
                 file_name_mapping=mapping,
             )
             rendered[file_name].append(out_path)
-            done += 1
-            yield ProcessProgress(done, total, f"Заполнение шаблона «{file_name}»")
+            filled += 1
+            yield ProcessProgress(
+                filled, fill_total, f"Заполнение шаблона «{file_name}»", phase="fill"
+            )
 
+    # Phase 2 — merge: a fresh progress bar for each template's combined file.
     merged_names = {
         str(v.data["category"]): merged_file_name(v.data, options)
         for v in graph.nodes_by_type("violet")
@@ -177,10 +204,14 @@ def iter_process(
     }
     merged_dir = out_dir / options.merged_dir_name
     merged_dir.mkdir(parents=True, exist_ok=True)
-    for file_name, _, _ in plans:
-        _merge_template(rendered[file_name], merged_dir, merged_names[file_name])
-        done += 1
-        yield ProcessProgress(done, total, f"Объединение «{file_name}»")
+    merge_count = len(plans)
+    for idx, (file_name, _, _) in enumerate(plans, start=1):
+        files = rendered[file_name]
+        merge_total = max(len(files), 1)
+        message = f"Объединение «{file_name}» ({idx} из {merge_count})"
+        yield ProcessProgress(0, merge_total, message, phase="merge", label=file_name)
+        for merged in _merge_template_iter(files, merged_dir, merged_names[file_name]):
+            yield ProcessProgress(merged, merge_total, message, phase="merge", label=file_name)
 
     archive_base = workspace / "archive"
     shutil.make_archive(str(archive_base), "zip", out_dir)

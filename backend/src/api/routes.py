@@ -159,13 +159,16 @@ async def process_documents_stream(request: Request):
         try:
             for event in iter_process(graph, excel_bytes, templates, workspace):
                 if isinstance(event, ProcessProgress):
+                    percent = round(event.done / event.total * 100) if event.total else 0
                     yield _sse(
                         "progress",
                         {
                             "done": event.done,
                             "total": event.total,
-                            "percent": round(event.done / event.total * 100),
+                            "percent": percent,
                             "message": event.message,
+                            "phase": event.phase,
+                            "label": event.label,
                         },
                     )
                 elif isinstance(event, ProcessResult):
