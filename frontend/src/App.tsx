@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import "@xyflow/react/dist/style.css";
 import "./styles/app.css";
 
@@ -7,6 +7,7 @@ import TopBar from "./components/TopBar";
 import DataPanel from "./components/DataPanel";
 import ArchivePanel from "./components/ArchivePanel";
 import ProgressOverlay from "./components/ProgressOverlay";
+import ValidationBanner from "./components/ValidationBanner";
 import { useFlowGraph } from "./hooks/useFlowGraph";
 import { useFileUploads } from "./hooks/useFileUploads";
 import { useArchiveModel } from "./hooks/useArchiveModel";
@@ -14,6 +15,10 @@ import { useProcessing } from "./hooks/useProcessing";
 import { importNodes as importNodesApi } from "./api/client";
 import { positionImportedNodes } from "./utils/layout";
 import { DEFAULT_ARCHIVE_OPTIONS } from "./utils/archiveOptions";
+import {
+  validateGraph,
+  type GraphValidationError,
+} from "./utils/graphValidation";
 import type { ArchiveEditTarget, ArchiveOptions, NodeData } from "./types";
 
 const App = () => {
@@ -34,6 +39,71 @@ const App = () => {
   const [dataOpen, setDataOpen] = useState(true);
   const [archiveOptions, setArchiveOptions] = useState<ArchiveOptions>(
     DEFAULT_ARCHIVE_OPTIONS
+  );
+  const [validationErrors, setValidationErrors] = useState<
+    GraphValidationError[]
+  >([]);
+
+  const clearValidation = useCallback(() => {
+    setValidationErrors([]);
+    setNodes((nds) =>
+      nds.map((n) =>
+        n.className?.includes("node-error")
+          ? { ...n, className: n.className.replace("node-error", "").trim() || undefined }
+          : n
+      )
+    );
+  }, [setNodes]);
+
+  // Returns true when the graph is valid; highlights + reports errors otherwise.
+  const checkGraph = useCallback((): boolean => {
+    const errors = validateGraph(nodes, edges);
+    if (errors.length === 0) {
+      clearValidation();
+      return true;
+    }
+    const invalidIds = new Set(errors.map((e) => e.nodeId));
+    setNodes((nds) =>
+      nds.map((n) => ({
+        ...n,
+        className: invalidIds.has(n.id)
+          ? "node-error"
+          : (n.className?.replace("node-error", "").trim() || undefined),
+      }))
+    );
+    setValidationErrors(errors);
+    return false;
+  }, [nodes, edges, clearValidation, setNodes]);
+
+  // When a new connection is made, re-run validation to clear resolved errors.
+  const handleConnect = useCallback(
+    (params: Parameters<typeof onConnect>[0]) => {
+      onConnect(params);
+      if (validationErrors.length > 0) {
+        // Optimistically re-validate; edges won't include the new one yet so we
+        // add it manually for an instant accurate result.
+        const nextEdges = [
+          ...edges,
+          { id: `_tmp`, source: params.source ?? "", target: params.target ?? "" },
+        ];
+        const remaining = validateGraph(nodes, nextEdges);
+        if (remaining.length === 0) {
+          clearValidation();
+        } else {
+          const invalidIds = new Set(remaining.map((e) => e.nodeId));
+          setNodes((nds) =>
+            nds.map((n) => ({
+              ...n,
+              className: invalidIds.has(n.id)
+                ? "node-error"
+                : (n.className?.replace("node-error", "").trim() || undefined),
+            }))
+          );
+          setValidationErrors(remaining);
+        }
+      }
+    },
+    [onConnect, validationErrors, edges, nodes, clearValidation, setNodes]
   );
 
   // Editing happens only in the archive-model tree (after "Создать модель
@@ -90,9 +160,8 @@ const App = () => {
   };
 
   const startProcessing = () => {
-    if (!requireFiles() || !excelFile) {
-      return;
-    }
+    if (!requireFiles() || !excelFile) return;
+    if (!checkGraph()) return;
     void run(nodes, edges, excelFile, wordFiles, archiveOptions);
   };
 
@@ -101,7 +170,9 @@ const App = () => {
       <TopBar
         dataOpen={dataOpen}
         onToggleData={() => setDataOpen((open) => !open)}
-        onGenerateModel={() => archive.generate(nodes, edges, archiveOptions)}
+        onGenerateModel={() => {
+            if (checkGraph()) archive.generate(nodes, edges, archiveOptions);
+          }}
         onProcess={startProcessing}
         importing={importing}
         processing={processing}
@@ -115,7 +186,7 @@ const App = () => {
           edges={edges}
           onNodesChange={onNodesChange}
           onEdgesChange={onEdgesChange}
-          onConnect={onConnect}
+          onConnect={handleConnect}
         />
 
         {nodes.length === 0 && (
@@ -148,6 +219,11 @@ const App = () => {
           model={archive.archiveModel}
           onClose={archive.hide}
           onEdit={handleArchiveEdit}
+        />
+
+        <ValidationBanner
+          errors={validationErrors}
+          onDismiss={clearValidation}
         />
 
         {progress && <ProgressOverlay progress={progress} />}
